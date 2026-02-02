@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonPrimitive</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonPrimitive</h1>
+        <p>幾何学図形の描画、エフェクト描画機能を提供します。<br>
+            <code>Ton.Gra</code> とは異なり、テクスチャを使用せずに頂点計算によって図形を描画します。<br>
+            ※<code>TonPrimitive</code> のメソッドを呼び出すと、実行中のSpriteBatchが一時中断され、描画モードが切り替わります（描画順序に注意）。
+        </p>
+
+        <h2>Methods</h2>
+
+        <h3>Basic Shapes</h3>
+        <div class="card">
+            <div class="method-sig">void DrawCircle(Vector2 center, float radius, Color color, int segments = 36)</div>
+            <p>円を描画します。</p>
+            <ul>
+                <li><code>center</code>: 中心座標</li>
+                <li><code>radius</code>: 半径</li>
+                <li><code>color</code>: 色</li>
+                <li><code>segments</code>: 円の滑らかさ（分割数）。デフォルトは36。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawCircle(Vector2 center, float radiusX, float radiusY, Color color, int
+                segments = 36)</div>
+            <p>楕円を描画します。</p>
+            <ul>
+                <li><code>center</code>: 中心座標</li>
+                <li><code>radiusX</code>: X方向の半径</li>
+                <li><code>radiusY</code>: Y方向の半径</li>
+                <li><code>color</code>: 色</li>
+                <li><code>segments</code>: 円の滑らかさ（分割数）。デフォルトは36。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawRectangle(Vector2 position, Vector2 size, Color color, float rotation = 0f,
+                Vector2? origin = null)</div>
+            <p>矩形を描画します。回転も可能です。</p>
+            <ul>
+                <li><code>position</code>: 座標（originがnullの場合は左上、指定されている場合はそのoriginの位置）</li>
+                <li><code>size</code>: 幅と高さ</li>
+                <li><code>color</code>: 色</li>
+                <li><code>rotation</code>: 回転角度（ラジアン）。デフォルトは0。</li>
+                <li><code>origin</code>: 回転の中心（ピボット）。nullの場合は中心 (size/2) が使用されます。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawTriangle(Vector2 p1, Vector2 p2, Vector2 p3, Color color)</div>
+            <p>三角形を描画します。</p>
+            <ul>
+                <li><code>p1</code>, <code>p2</code>, <code>p3</code>: 3つの頂点座標</li>
+                <li><code>color</code>: 色</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawPolygon(List&lt;Vector2&gt; vertices, Color color)</div>
+            <p>凸多角形を描画します。頂点リストの順に結んで塗りつぶします。</p>
+            <ul>
+                <li><code>vertices</code>: 頂点リスト（3つ以上必要）</li>
+                <li><code>color</code>: 色</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawArc(Vector2 center, float radius, float startAngle, float endAngle, float
+                thickness, Color color, int segments = 24)</div>
+            <p>円弧（線）を描画します。</p>
+            <ul>
+                <li><code>center</code>: 中心座標</li>
+                <li><code>radius</code>: 半径</li>
+                <li><code>startAngle</code>: 開始角度（ラジアン）</li>
+                <li><code>endAngle</code>: 終了角度（ラジアン）</li>
+                <li><code>thickness</code>: 線の太さ</li>
+                <li><code>color</code>: 色</li>
+                <li><code>segments</code>: 分割数。滑らかさに影響します。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawRoundedRectangle(Vector2 position, Vector2 size, float cornerRadius, Color
+                color, float rotation = 0f, Vector2? origin = null)</div>
+            <p>角丸矩形を描画します。</p>
+            <ul>
+                <li><code>position</code>: 座標</li>
+                <li><code>size</code>: 幅と高さ</li>
+                <li><code>cornerRadius</code>: 角の半径</li>
+                <li><code>color</code>: 色</li>
+                <li><code>rotation</code>: 回転角度（ラジアン）</li>
+                <li><code>origin</code>: 回転の中心。nullの場合は中心が使用されます。</li>
+            </ul>
+        </div>
+
+        <h3>Advanced Graphics</h3>
+        <div class="card">
+            <div class="method-sig">void DrawSpline(List&lt;Vector2&gt; points, float thickness, Color color)</div>
+            <p>複数の点を通る滑らかなスプライン曲線（Catmull-Rom）を描画します。</p>
+            <ul>
+                <li><code>points</code>: 通過点のリスト</li>
+                <li><code>thickness</code>: 線の太さ</li>
+                <li><code>color</code>: 色</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawArrow(List&lt;Vector2&gt; points, float thickness, Color color, float
+                headSize = 20f, Color? borderColor = null, float borderThickness = 2f)</div>
+            <p>矢印付きのスプライン曲線を描画します。</p>
+            <ul>
+                <li><code>points</code>: 通過点のリスト。最後の点が矢印の先端になります。</li>
+                <li><code>thickness</code>: 線の太さ</li>
+                <li><code>color</code>: 色</li>
+                <li><code>headSize</code>: 矢印の先端（三角形部分）のサイズ</li>
+                <li><code>borderColor</code>: 縁取りの色。nullの場合は縁取りなし。</li>
+                <li><code>borderThickness</code>: 縁取りの太さ</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawRibbon(List&lt;Vector2&gt; points, float startWidth, float endWidth, Color
+                startColor, Color endColor)</div>
+            <p>太さと色が変化するリボン（軌跡）を描画します。</p>
+            <ul>
+                <li><code>points</code>: 通過点のリスト（軌跡データの履歴など）</li>
+                <li><code>startWidth</code>: 始点（リストの最初）の太さ</li>
+                <li><code>endWidth</code>: 終点（リストの最後）の太さ</li>
+                <li><code>startColor</code>: 始点の色</li>
+                <li><code>endColor</code>: 終点の色</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawBolt(Vector2 start, Vector2 end, float thickness, Color color, float
+                difficulty, float updatesPerSecond = 60f)</div>
+            <p>稲妻を描画します。形状はランダムに変化します。</p>
+            <ul>
+                <li><code>start</code>: 始点</li>
+                <li><code>end</code>: 終点</li>
+                <li><code>thickness</code>: 線の太さ</li>
+                <li><code>color</code>: 色</li>
+                <li><code>difficulty</code>: 形状の複雑さ・激しさ (1.0が標準)。値が大きいほど大きく蛇行します。</li>
+                <li><code>updatesPerSecond</code>: 秒間の形状更新頻度。60なら毎フレーム変化、0以下なら固定形状になります。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawFocusLines(Vector2 center, float outerRadius, float intensity, Color color,
+                float updatesPerSecond = 0f)</div>
+            <p>集中線を描画します。</p>
+            <ul>
+                <li><code>center</code>: 集中線の中心座標</li>
+                <li><code>outerRadius</code>: 外径（画面サイズ以上に設定することを推奨、大きくしないと端が見えてしまいます）</li>
+                <li><code>intensity</code>: 線の密度係数（0.0～）。1.0が標準。</li>
+                <li><code>color</code>: 色</li>
+                <li><code>updatesPerSecond</code>: 秒間のアニメーション更新頻度。0で静止画。</li>
+            </ul>
+        </div>
+
+        <h3>Utilities</h3>
+        <div class="card">
+            <div class="method-sig">void GetSplineInfo(List&lt;Vector2&gt; points, float t, out Vector2 position, out
+                float radians)</div>
+            <p>スプライン曲線上の任意の位置と角度を取得します。パスに沿ってオブジェクトを動かす場合に便利です。</p>
+            <ul>
+                <li><code>points</code>: スプライン曲線の通過点リスト</li>
+                <li><code>t</code>: 進行度 (0.0 ～ points.Count - 1.0)。整数部が区間インデックスに対応します。</li>
+                <li><code>position</code>: 計算された座標 (出力)</li>
+                <li><code>radians</code>: 計算された角度（ラジアン） (出力)</li>
+            </ul>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// 稲妻を描画 (秒間20回アニメーション)
+Ton.Primitive.DrawBolt(
+    new Vector2(100, 100), 
+    new Vector2(500, 500), 
+    5.0f, 
+    Color.Yellow, 
+    1.0f, 
+    20f
+);
+
+// 集中線を描画
+Ton.Primitive.DrawFocusLines(
+    center, 
+    1000f, 
+    0.8f, 
+    Color.White, 
+    12f
+);
+
+// 角丸矩形の描画
+Ton.Primitive.DrawRoundedRectangle(
+    new Vector2(400, 300),
+    new Vector2(200, 100),
+    10f,
+    Color.Blue
+);</code></pre>
+    </div>
+</body>
+
+</html>

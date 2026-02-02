@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonMenuManager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonMenuManager</h1>
+        <p>メニューのスタック（重なり順）と状態遷移を管理するクラスです。<br>
+            複数のメニューを開き、必要に応じて戻る（Pop）などの履歴管理を自動化します。<br>
+            詳細は<a href="class_tonmenu.html" target="content">TonMenuのページ</a>を参照してください。</p>
+
+        <div class="card">
+            <h3>役割</h3>
+            <ul>
+                <li><strong>スタック管理</strong>: 新しいメニューをPushすると最前面になり、Popすると前のメニューに戻ります。</li>
+                <li><strong>入力分配</strong>: 現在アクティブな（最前面の）メニューにのみ入力を伝えます。</li>
+                <li><strong>描画順序</strong>: 後ろにあるメニューから順に描画します（Zオーダー）。</li>
+            </ul>
+        </div>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">public void Push(TonMenu menu, Action&lt;object&gt; onResult = null)</div>
+            <p>新しいメニューをスタックの一番上に開き、アクティブにします。</p>
+            <ul>
+                <li><code>menu</code>: 開くメニューインスタンス</li>
+                <li><code>onResult</code>: このメニューが閉じられた時に呼ばれるコールバック。結果を受け取るのに使います。</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">public void Pop(object result = null)</div>
+            <p>現在の（最前面の）メニューを閉じ、前のメニューに戻ります。</p>
+            <ul>
+                <li><code>result</code>: 親メニュー（Push時のcallback）に渡す結果データ。</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">public void Clear()</div>
+            <p>全てのメニューを強制的に閉じ、スタックを空にします。</p>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">public void Update()</div>
+            <p>アクティブなメニューに入力状態を伝えます。通常は <code>Game.Update</code> 内で呼び出します。</p>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">public void Draw(Action&lt;TonMenu&gt; backgroundDrawer = null)</div>
+            <p>スタックされている全てのメニューを描画します。</p>
+            <ul>
+                <li><code>backgroundDrawer</code>: 各メニューの描画直前に呼ばれるコールバック。ウィンドウの背景（枠）などを描画するために使用します。</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">public bool IsMenuOpen</div>
+            <p>現在開いているメニューがあるかどうか（スタックが空でないか）を取得します。</p>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">public void SetInputButtons(string ok, string cancel)</div>
+            <p>メニュー操作に使用する入力ボタンの割り当てを変更します。<br>
+                デフォルトでは 決定="A", キャンセル="B" です。</p>
+            <ul>
+                <li><code>ok</code>: 決定操作のボタン名（TonInputで定義されたもの）</li>
+                <li><code>cancel</code>: キャンセル操作のボタン名</li>
+            </ul>
+        </div>
+
+    </div>
+</body>
+
+</html>

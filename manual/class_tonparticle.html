@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonParticle</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonParticle</h1>
+        <p>オブジェクトプーリングを使用した軽量なパーティクルシステムです。</p>
+
+        <h2>Structures</h2>
+        <div class="card">
+            <div class="method-sig">class TonParticleParam</div>
+            <p>パーティクルの挙動を定義するパラメータクラスです。</p>
+            <ul>
+                <li><code>string ImageName</code>: 使用画像のキー名</li>
+                <li><code>int MinLife, MaxLife</code>: 寿命の範囲（ミリ秒）</li>
+                <li><code>float MinSpeed, MaxSpeed</code>: 速度の範囲</li>
+                <li><code>float MinAngle, MaxAngle</code>: 放出角度の範囲（ラジアン）</li>
+                <li><code>float MinScale, MaxScale</code>: スケールの範囲</li>
+                <li><code>float Gravity</code>: 重力加速度</li>
+                <li><code>Color StartColor, EndColor</code>: 色の変化</li>
+                <li><code>bool IsAdditive</code>: 加算合成を使用するかどうか</li>
+            </ul>
+        </div>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">void Register(string name, TonParticleParam param)</div>
+            <p>パーティクルの定義を名前を付けて登録します。</p>
+            <ul>
+                <li><code>name</code>: 登録名（Play時に使用）</li>
+                <li><code>param</code>: パラメータ</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Play(string name, float x, float y, int count = 1)</div>
+            <p>パーティクルを発生させます。</p>
+            <ul>
+                <li><code>name</code>: 登録名</li>
+                <li><code>x</code>, <code>y</code>: 発生座標</li>
+                <li><code>count</code>: 一度に発生させる数</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Clear()</div>
+            <p>全てのパーティクルを消去します。</p>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// In Initialize()
+// 1. Register Particle Definition
+var explosionParam = new TonParticleParam
+{
+    ImageName = "particle_star",
+    MinLife = 500, MaxLife = 1000,
+    MinSpeed = 2.0f, MaxSpeed = 5.0f,
+    MinAngle = 0, MaxAngle = 6.28f, // 360 degrees
+    MinScale = 0.5f, MaxScale = 1.5f,
+    Gravity = 0.1f,
+    StartColor = Color.Yellow, EndColor = Color.Red,
+    IsAdditive = true
+};
+Ton.Particle.Register("explosion", explosionParam);
+
+// In Update() (or Event Handler)
+// 2. Play Particle (e.g. on impact)
+if (isImpact)
+{
+    Ton.Particle.Play("explosion", 300, 200, 20); // Emit 20 particles
+}
+
+// 3. Update and Draw are handled automatically by Ton.Update/Ton.Draw</code></pre>
+    </div>
+</body>
+
+</html>

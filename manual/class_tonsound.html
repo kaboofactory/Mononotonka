@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonSound</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonSound</h1>
+        <p>BGMとSE（効果音）の再生を管理します。<br>
+            ※BGM名、SE名などのリソースキーは大文字小文字を区別しません。</p>
+
+        <h2>Properties</h2>
+        <div class="card">
+            <div class="method-sig">long TotalSoundMemory</div>
+            <p>現在ロードされているSE（効果音）の推定メモリ使用量（バイト）を取得します。BGMはストリーミング再生のため含まれません。</p>
+        </div>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">void LoadSound(string path, string name, string contentId = "Default", float
+                baseVolume = 1.0f)</div>
+            <p>効果音(SE)を読み込みます。</p>
+            <ul>
+                <li><code>path</code>: コンテンツパス（Content/sound/se/からの相対パス、拡張子なし）</li>
+                <li><code>name</code>: 登録名（必須）</li>
+                <li><code>contentId</code>: コンテンツグループID。指定したIDごとにリソースがグループ化されます。"Default"グループは自動解放されません。(既定値 "Default")
+                </li>
+                <li><code>baseVolume</code>: ベース音量(0.0～1.0)。再生時の音量に乗算されます。(既定値 1.0f)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void LoadBGM(string path, string name, string contentId = "Default", float
+                baseVolume = 1.0f)</div>
+            <p>BGMを読み込みます。</p>
+            <ul>
+                <li><code>path</code>: コンテンツパス（Content/sound/bgm/からの相対パス、拡張子なし）</li>
+                <li><code>name</code>: 登録名（必須）</li>
+                <li><code>contentId</code>: コンテンツグループID。指定したIDごとにリソースがグループ化されます。"Default"グループは自動解放されません。(既定値 "Default")
+                </li>
+                <li><code>baseVolume</code>: ベース音量(0.0～1.0)。再生時の音量に乗算されます。(既定値 1.0f)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void PlayBGM(string bgmName, float fadeSeconds = 0.0f, float
+                volume = 1.0f)</div>
+            <p>BGMを再生します。既に再生中のBGMは停止し、新しいBGMへ切り替わります。<br>
+                直前に StopBGM(..., true) で停止されていたBGMを指定した場合、自動的に続きから再生します。</p>
+            <ul>
+                <li><code>bgmName</code>: BGMリソース名（Content/sound/bgm/フォルダ内）</li>
+                <li><code>fadeSeconds</code>: フェードインにかける時間（秒）</li>
+                <li><code>volume</code>: 再生音量(0.0～1.0)。範囲外の値は自動的にクリップされます。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void StopBGM(float fadeSeconds = 0.0f, bool bPause = false)</div>
+            <div class="method-sig">void StopBGM(bool bPause)</div>
+            <div class="method-sig">void StopBGM(float fadeSeconds)</div>
+            <p>現在再生中のBGMを停止します。</p>
+            <ul>
+                <li><code>fadeSeconds</code>: フェードアウトにかける時間（秒）</li>
+                <li><code>bPause</code>: trueの場合、現在の曲情報を一時保存します（PlayBGMでのResume用）。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void PlaySE(string seName, float volume = 1.0f)</div>
+            <p>効果音を再生します。</p>
+            <ul>
+                <li><code>seName</code>: SEリソース名（Content/sound/se/フォルダ内）</li>
+                <li><code>volume</code>: 再生音量(0.0～1.0)。範囲外の値は自動的にクリップされます。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Unload(string contentId)</div>
+            <p>指定したコンテンツグループのリソースをすべて解放します。<br>
+                ※"Default"グループは解放できません。</p>
+            <ul>
+                <li><code>contentId</code>: アンロード対象のコンテンツグループID</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void UnloadAll()</div>
+            <p>すべてのサウンドリソース（BGM/SE）を停止し、メモリから解放します。</p>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">void SetMasterVolume(float volume)</div>
+            <p>全体の音量を設定します。</p>
+            <ul>
+                <li><code>volume</code>: マスター音量(0.0～1.0)。範囲外の値は自動的にクリップされます。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">float GetMasterVolume()</div>
+            <p>現在のマスター音量を取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">TimeSpan GetBGMPosition()</div>
+            <p>現在再生中のBGMの再生位置を取得します。再生中でない場合はZeroを返します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">TimeSpan GetBGMLength()</div>
+            <p>現在再生中のBGMの長さ(Duration)を取得します。再生中でない場合はZeroを返します。</p>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// In Initialize()
+// Preload BGM into "Stage1" group
+Ton.Sound.LoadBGM("bgm/battle_theme", "battle_theme", "Stage1");
+// Preload SE
+Ton.Sound.LoadSound("se/explosion", "explosion", "Stage1");
+
+
+// In Update() (or Event Handler)
+if (Ton.Input.IsTrigger(Keys.Z))
+{
+    // Play Sound Effect
+    Ton.Sound.PlaySE("explosion");
+}
+
+if (Ton.Input.IsTrigger(Keys.B))
+{
+    // Play BGM (Using registered name "battle_theme")
+    // 1.0f volume, 2.0f seconds fade-in
+    Ton.Sound.PlayBGM("battle_theme", 2.0f, 1.0f);
+}
+
+// Volume Control
+if (Ton.Input.IsTrigger(Keys.Up))
+{
+    // Adjust Master Volume (0.0 to 1.0)
+    Ton.Sound.SetMasterVolume(0.8f);
+}
+
+// In Scene Change or Cleanup
+// Unload all resources in "Stage1" group
+Ton.Sound.Unload("Stage1");
+
+// Stop BGM with 1 second fade-out
+Ton.Sound.StopBGM(1.0f);</code></pre>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mononotonka Reference Manual</title>
+    <link rel="stylesheet" href="manual/style.css">
+    <script>
+        function loadPage(page) {
+            document.getElementById('content-frame').src = page;
+        }
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h1 class="logo">Mononotonka</h1>
+
+            <div class="nav-section">
+                <div class="nav-header">Main</div>
+                <ul class="nav-links">
+                    <li><a href="manual/overview.html" target="content">Overview</a></li>
+                    <li><a href="manual/license.html" target="content">License</a></li>
+                    <li><a href="manual/faq.html" target="content">FAQ</a></li>
+                </ul>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-header">Classes</div>
+                <ul class="nav-links"
+                    style="font-size: 0.9em; border-left: 1px solid rgba(255,255,255,0.1); margin-left:10px;">
+                    <li><a href="manual/class_ton.html" target="content">Ton</a></li>
+                    <li><a href="manual/class_tongame.html" target="content">TonGame</a></li>
+                    <li><a href="manual/class_tongamedata.html" target="content">TonGameData</a></li> <!-- Added -->
+                    <li><a href="manual/class_tongraphics.html" target="content">TonGraphics</a></li>
+                    <li><a href="manual/class_toninput.html" target="content">TonInput</a></li>
+                    <li><a href="manual/class_tonsound.html" target="content">TonSound</a></li>
+                    <li><a href="manual/class_tonscene.html" target="content">TonScene</a></li>
+                    <li><a href="manual/class_tonparticle.html" target="content">TonParticle</a></li>
+                    <li><a href="manual/class_tonsaveloadmenu.html" target="content">TonSaveLoadMenu</a></li>
+                    <li><a href="manual/class_tonmessage.html" target="content">TonMessage</a></li>
+                    <li><a href="manual/class_toncharacter.html" target="content">TonCharacter</a></li>
+                    <li><a href="manual/class_tonconfigmenu.html" target="content">TonConfigMenu</a></li>
+                    <li><a href="manual/class_tonmenu.html" target="content">TonMenu</a></li>
+                    <li><a href="manual/class_tonmenumanager.html" target="content">TonMenuManager</a></li>
+                    <li><a href="manual/class_tonstorage.html" target="content">TonStorage</a></li>
+                    <li><a href="manual/class_tonlog.html" target="content">TonLog</a></li>
+                    <li><a href="manual/class_tonmath.html" target="content">TonMath</a></li>
+                    <li><a href="manual/class_tonprimitive.html" target="content">TonPrimitive</a></li>
+                    <li><a href="manual/class_tonmagiceffect.html" target="content">TonMagicEffect</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <iframe name="content" id="content-frame" class="content-frame" src="manual/overview.html"></iframe>
+    </div>
+</body>
+
+</html>

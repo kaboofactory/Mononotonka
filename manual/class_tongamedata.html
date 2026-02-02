@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonGameData</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonGameData</h1>
+        <p>ゲームの実行中データ（HP, 所持金, フラグなど）を管理するクラスです。<br>
+            このクラスのインスタンスは自動的にシリアライズ（JSON化）され、セーブデータとして保存されます。</p>
+
+        <h2>Relationship with TonSaveLoadMenu</h2>
+        <p><code>TonGameData</code> はリポジトリ（データコンテナ）としての役割を持ち、<code>TonSaveLoadMenu</code> によって操作されます。</p>
+        <ul>
+            <li><strong>Save</strong>: <code>TonSaveLoadMenu</code> が <code>Ton.Data</code> の内容を JSON ファイルに書き出します。</li>
+            <li><strong>Load</strong>: <code>TonSaveLoadMenu</code> が JSON ファイルを読み込み、新しい <code>TonGameData</code>
+                インスタンスを生成して <code>Ton.Data</code> を差し替えます。</li>
+        </ul>
+
+        <h2>Properties</h2>
+        <p>標準で以下のプロパティを持っていますが、必要に応じて自由に拡張してください。</p>
+
+        <div class="alert alert-info">
+            <strong>ここに定義すべき変数とは？</strong><br>
+            「ゲームを中断して再開したときに保持しておきたい情報」はすべてここに定義します。<br>
+            <ul>
+                <li>⭕ <strong>定義すべきもの</strong>: プレイヤーのレベル、HP、経験値、所持金、ストーリー進行フラグ、入手アイテムなど。</li>
+                <li>❌ <strong>定義すべきでないもの</strong>:
+                    アニメーションの再生時間、現在選択中のメニューカーソル位置、敵の一時的な座標など、シーンを切り替えたりゲームを再起動したらリセットされても良い情報。<br>
+                    これらは各シーンクラスやエンティティクラスのメンバ変数として管理してください。</li>
+            </ul>
+        </div>
+
+        <ul>
+            <li><code>HP / MaxHP</code>: 体力</li>
+            <li><code>Level / Exp</code>: レベルと経験値</li>
+            <li><code>Money</code>: 所持金</li>
+            <li><code>CurrentSceneName</code>: 現在のシーン名（ロード後の復帰に使用）</li>
+            <li><code>PlayerX / PlayerY</code>: プレイヤー座標</li>
+        </ul>
+
+        <h2>Helper Methods</h2>
+        <p>フラグや変数を安全かつ簡単に操作するためのメソッド群です。</p>
+
+        <div class="card">
+            <div class="method-sig">void SetFlag(string flagName)</div>
+            <p>指定した名前のフラグをONにします。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void RemoveFlag(string flagName)</div>
+            <p>指定した名前のフラグをOFF（削除）にします。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool CheckFlag(string flagName)</div>
+            <p>指定した名前のフラグがONになっているかを確認します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetVar(string name, int val)</div>
+            <p>指定した名前の変数を設定します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">int GetVar(string name)</div>
+            <p>指定した名前の変数の値を取得します。設定されていない場合は 0 を返します。</p>
+        </div>
+
+        <h2>Methods (Hooks)</h2>
+        <div class="card">
+            <div class="method-sig">void BeforeSave()</div>
+            <p>セーブ実行直前に呼ばれます。現在のプレイヤー座標をプロパティに反映するなど、保存前の準備処理を記述します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void AfterLoad()</div>
+            <p>ロード完了直後（インスタンス差し替え後）に呼ばれます。シーンの遷移やプレイヤーの再配置など、復元処理を記述します。</p>
+        </div>
+
+        <h2>Attributes</h2>
+        <p>保存したくない一時的な変数には <code>[JsonIgnore]</code> 属性を付与してください。</p>
+        <pre><code>[JsonIgnore]
+public int BattleTempParam { get; set; }</code></pre>
+
+        <h2>Sample Code</h2>
+        <pre><code>// データの更新
+Ton.Data.HP -= 10;
+Ton.Data.SetFlag("BossDefeated");
+
+// ロード後の復帰処理（TonGameData.cs内）
+public void AfterLoad()
+{
+    // シーン遷移
+    if (!string.IsNullOrEmpty(CurrentSceneName))
+    {
+         // シーン復元ロジック...
+    }
+}</code></pre>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>よくある質問 (FAQ) - てやんでい編</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>よくある質問 (FAQ) <span style="font-size: 0.6em; color: var(--text-muted);">〜てやんでい編〜</span></h1>
+        <p>おう！ Mononotonka の使い方で迷っちまったかい？<br>
+            ここじゃあ、よくある質問に江戸っ子口調でバシッと答えさせてもらうぜ！</p>
+
+        <h2>基本・全般 (General)</h2>
+        <div class="card">
+            <div class="method-sig">Q. <code>Ton.Instance.gra</code> と <code>Ton.Gra</code>、どっちを使えばいいんでい！</div>
+            <p><strong>A. <code>Ton.Gra</code> に決まってんだろ！</strong><br>
+                短けぇことはいいことだ！ <code>Ton.Instance</code> なんて長ったらしいもんいちいち書いてられっか！ staticプロパティのショートカットを用意してあるんだから、ありがたく使いな！
+            </p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. <code>Initialize</code> を呼び忘れたらどうなるんでい？</div>
+            <p><strong>A. 動くわけねえだろ！</strong><br>
+                <code>Game1.Initialize</code> の中で <code>Ton.Initialize</code> を呼ぶのは基本中の基本よ！ これを忘れちゃあ、お天道様の下歩けねぇぜ！
+            </p>
+        </div>
+
+        <h2>グラフィックス (Graphics)</h2>
+        <div class="card">
+            <div class="method-sig">Q. テクスチャの読み込み (LoadTexture) はどこでやりゃあいい？ Initializeか？ LoadContentか？</div>
+            <p><strong>A. 使いたい時に使いな！</strong><br>
+                うちは「ゆるふわキャッシュシステム」採用してんだ。事前のロードなんて野暮なことは言いっこなしだ。描画の直前でもどこでも、<code>Ton.Gra.LoadTexture</code> を呼びな！
+                既に読んでありゃキャッシュから返すし、なけりゃその場で読んでやるよ！まぁ、各シーンでしか使わねぇやつは各シーンのInitialize()で、どこでも使うやつはGame1のLoadContent()で読んどけば間違いねぇな。
+            </p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. 画像を読み込みすぎてメモリが溢れちまわねぇか心配だ…</div>
+            <p><strong>A. びくびくすんじゃねえ！</strong><br>
+                使わなくなった画像は、キャッシュシステムが勝手に片付け（Unload）てやるよ！<br>
+                どうしても心配なら、<code>Ton.Gra.MaxTextureMemory</code> で使用量をチェックしな！ それでも溢れるようなら、<code>UnloadTexture</code>
+                で手動で消すなり、キャッシュのタイムアウト時間を調整するなり工夫しやがれ！</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. 画面にフィルターかけたいんだが、どうすりゃいい？</div>
+            <p><strong>A. <code>Ton.Gra.SetScreenFilter</code> を使いな！</strong><br>
+                セピアだのモノクロだの、洒落た真似もお手の物よ。指定したターゲットだけにかけたりもできるから、ド派手に演出してみな！<br>
+                複数のフィルタを同時にかける場合は、<code>Ton.Gra.AddScreenFilter</code> を使って追加してやりな！<br>
+                フィルタが不要になったら、<code>Ton.Gra.ClearScreenFilter</code> を使って消すんだよ！</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. 画像を回転させたり拡大縮小して描画してぇんだ！</div>
+            <p><strong>A. <code>Ton.Gra.DrawEx</code> を使いな！</strong><br>
+                ただの <code>Draw</code> じゃ満足できねぇってか？ 贅沢な奴だな！<br>
+                <code>DrawEx</code> なら回転角度（ラジアン）も拡縮率も思いのままだ。中心座標を基準にグルグル回してやりな！
+            </p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. 文字を表示したいんだが、どのフォントがありやがる？</div>
+            <p><strong>A. 自分で探してこい！文句あっか！</strong><br>
+                ライセンスとかあるから<A href="https://fonts.google.com/">Google Fonts</A>とかで自分で探してきて、読み込ませな！
+                その辺で発売しているフォントは、ゲーム開発用のライセンスが厳しいものが多いから注意な！
+                フォントをPCにインストールして、Fontフォルダにある.spritefontファイルのFontNameを改変して、MGCB Editorで登録しな！</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. カスタマイズしたSpritefontファイルを作りたいんだが</div>
+            <p><strong>A. 自分で作ってこい！文句あっか！</strong><br>
+                <A href="https://kaboofactory.github.io/KabooSpritefontMaker/index.html">これ</A>とか使ってな！！<br>
+                <A href="https://github.com/kaboofactory/KabooSpritefontMaker">ソースもある</A>ぜ、自分で作ってみな！
+            </p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. ドット絵がボヤけちまうんだが！？</div>
+            <p><strong>A. <code>SetAntiAliasing(false)</code> を呼びな！</strong><br>
+                デフォルトじゃ滑らかにするためにアンチエイリアスがかかってらぁ。<br>
+                パキッとしたドット絵を見せてぇなら、Initializeのあたりで「アンチエイリアスは結構です」って断りを入れときな！</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. 描画順序 (Z-order) はどうなってんでい？</div>
+            <p><strong>A. 書いた順に決まってんだろ！</strong><br>
+                うちの <code>SpriteBatch</code> は <code>Deferred</code> モードだ。先に書いたもんが奥、後に書いたもんが手前だ。<br>
+                背景を先に描いて、キャラを後に描く。そんな当たり前のことをきっちりやりな！</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. 加算合成（光るエフェクト）とかしてぇんだが。</div>
+            <p><strong>A. <code>SetBlendState</code> で切り替えな！</strong><br>
+                <code>TonBlendState.Additive</code> をセットすりゃあ、ピカッと光るぜ！<br>
+                描き終わったら <code>TonBlendState.AlphaBlend</code> に戻すのを忘れんじゃねえぞ！ つけっぱなしだと画面が真っ白になっちまうからな！
+            </p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. <code>DrawBackground</code> ってのは何者だ？</div>
+            <p><strong>A. 画面いっぱいに描くための助っ人よ！</strong><br>
+                一枚絵を背景にしたい時、アスペクト比を維持したまま画面を埋めるように拡大縮小して描画してやる便利な関数だ。<br>
+                隙間ができないようにちょいと大きめに描いてやるから、細かいことは気にせず任せな！</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. 画像が見つからねぇとピンク色の四角が出やがる！</div>
+            <p><strong>A. そりゃあ「エラー」の印だ！</strong><br>
+                指定したファイルパスが間違ってるか、Contentに追加し忘れてる証拠だ！<br>
+                ゲームを落とさねぇように代わりにマゼンタの四角を出してやってるんだ、感謝しな！ ログにエラーが出てるはずだから、血眼になって探しな！</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. 画面全体を揺らしてぇんだが！</div>
+            <p><strong>A. <code>Ton.Gra.Shake</code> で一発よ！</strong><br>
+                ダメージ受けた時とかに使いな。時間と強さを指定すりゃ、画面全体をガタガタ揺らしてやるぜ。<br>
+                「地震だ！」ってなもんよ。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. MGCB Editorってのは何だ？ 使い方がさっぱりわからねぇ！</div>
+            <p><strong>A. 商売道具の手入れもできねぇのか！</strong><br>
+                MonoGameで画像や音を使うには、これで「登録」して「ビルド」しなきゃならねぇ。<br>
+                Visual Studioのソリューションエクスプローラーにある、拡張子が .mgcb のファイルをダブルクリックすれば立ち上がるはずだ。<br>
+                そこで使いたいファイルをAddして、ビルドボタンを押しな！<br>
+                これをやらねぇと、ロードした時にピンク色の四角が出たり、音が鳴らなかったりするぜ！</p>
+        </div>
+
+
+        <h2>プリミティブ描画 (Primitive)</h2>
+        <div class="card">
+            <div class="method-sig">Q. 画像を使わずに図形を描きてぇんだ！</div>
+            <p><strong>A. <code>Ton.Primitive</code> を使いな！</strong><br>
+                円でも四角でも稲妻でも、テクスチャなしで描き放題だ！
+            </p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. 稲妻 (DrawBolt) が動かねえぞ！ どうなんてんだ！</div>
+            <p><strong>A. <code>updatesPerSecond</code> を設定しな！</strong><br>
+                最後の引数が 0 だと「時が止まった」稲妻になっちまう。<br>
+                ここを 60 とかにすりゃ、毎秒60回ビリビリ形が変わるようになるぜ！</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. 図形をもっと滑らかにしてぇんだが？</div>
+            <p><strong>A. <code>segments</code> を増やしな！</strong><br>
+                円や円弧を描くときの引数 <code>segments</code> が分割数だ。<br>
+                これを増やせばツルツルになるが、増やしすぎると重くなるから程々にな！</p>
+        </div>
+
+        <h2>サウンド (Sound)</h2>
+        <div class="card">
+            <div class="method-sig">Q. 音が鳴らねえぞ！ どうなってやがる！</div>
+            <p><strong>A. 下手な言い訳すんじゃねえ！</strong><br>
+                <code>Ton.Update</code> は毎フレーム呼んでるか？ 音量（MasterVolume）がゼロになってねえか？<br>
+                そこら辺が間違ってなきゃ、ファイルパスが合ってるか確認しな！ 大文字小文字は気にしなくていいようにしてやってるが、ファイル自体がなきゃ音は出ねえぞ！
+            </p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. BGMをクロスフェードさせたいんだが…</div>
+            <p><strong>A. <code>PlayBGM</code> の引数を見てみな！</strong><br>
+                <code>fadeSeconds</code> って引数があるだろ？ そこに秒数を入れれば、今の曲をフェードアウトさせながら新しい曲をフェードインさせてやるよ。粋な計らいってやつだ！
+            </p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. パンはねぇのかよパンは</div>
+            <p><strong>A. ねぇよ！！パンなんか食ってられるか！！</strong><br>
+            </p>
+        </div>
+
+        <h2>入力 (Input)</h2>
+        <div class="card">
+            <div class="method-sig">Q. キー配置を変えてぇんだが…</div>
+            <p><strong>A. <code>input.config</code> をイジりな！</strong><br>
+                「決定」がZキーじゃ気に入らないって？ だったら <code>input.config</code> ファイルを作りな！ 好きなキーに割り当て放題よ！<br>
+                ファイルがどこにあるのかわからない？ログに書いてあるぜ！！
+            </p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. ゲームパッドが急に抜けちまったらどうなるんでい？</div>
+            <p><strong>A. 慌てるんじゃねえ！</strong><br>
+                抜けた時は「GamePad Disconnected」、差した時は「GamePad Connected」ってログが出るようになってらぁ。<br>
+                勝手に再認識して使えるようになるはずだから、落ち着いて差し直しな！<br>
+                ちなみにゲームパッドは1つしか認識しないから、2つ以上差してても意味はねえぞ！</p>
+        </div>
+
+        <h2>シーン管理 (Scene)</h2>
+        <div class="card">
+            <div class="method-sig">Q. シーン切り替えはどうやるんでい？</div>
+            <p><strong>A. <code>Ton.Scene.Change</code> を使いな！</strong><br>
+                次のシーンのインスタンスを作って渡すだけだ。<br>
+                フェードイン・アウトの時間も秒数で指定できる。<br>
+                <code>Ton.Scene.Change(new NextScene(), 1.0f, 1.0f)</code> ってな具合だ。<br>
+                真っ暗な中でコッソリ着替えたい時は、フェード時間を長めに取りな！
+            </p>
+        </div>
+
+        <h2>パーティクル (Particle)</h2>
+        <div class="card">
+            <div class="method-sig">Q. 派手なエフェクトを出してぇんだが！</div>
+            <p><strong>A. <code>Ton.Particle</code> に任せな！</strong><br>
+                まずは <code>Ton.Particle.Register</code> で「どんな飛び方をするか」を登録するんだ。<br>
+                速度、寿命、重力、色… こだわりの設定を作りな！<br>
+                あとは <code>Ton.Particle.Play</code> を呼べば、登録した通りに景気よく飛び散らかしてやるぜ！</p>
+        </div>
+
+        <h2>セーブ・ロード画面 (Save/Load)</h2>
+        <div class="card">
+            <div class="method-sig">Q. セーブ画面を作んのが面倒くせぇ！！</div>
+            <p><strong>A. 楽しようとしてんじゃねえ！ …と言いたいが、用意してあるぜ！！</strong><br>
+                <code>Ton.SaveLoadMenu.Open</code> を呼ぶだけで、立派なセーブ・ロード画面が開く寸法だ。<br>
+                <code>TonSaveLoadMode.BothDefaultSave</code> とか指定すれば、セーブ・ロード両対応の画面になる。<br>
+                <code>Ton.SaveLoadMenu.ExecuteAutoSave</code>を呼び出すだけでオートセーブのスロットにセーブが行われるぜ！<br>
+                データは <code>Ton.Data</code> の中身を丸ごと保存するから、大事なもん（変数の値とか）はそこに入れときな！<br>
+                セーブ・ロード画面がしょぼいと思ったら自分でDraw()を直しな！！自分で直せるのがMononotonkaのいいところだ！！<br>
+                ロード後には<code>Ton.Data.AfterLoad()</code>が呼ばれるぜ！ロードしたデータの後処理はそこでやるんだぜ！
+            </p>
+        </div>
+
+        <h2>メッセージ (Message)</h2>
+        <div class="card">
+            <div class="method-sig">Q. 会話用のメッセージウィンドウを作るのが面倒くせぇ！！</div>
+            <p><strong>A. <code>Ton.Msg</code> があるじゃねえか！</strong><br>
+                <code>Ton.Msg.LoadScript</code> にスクリプトを渡せば、文字が流れるぜ！！ウィンドウは自分で描きな！！<br>
+                <code>[wait:10]</code> で待ったり、<code>[color:Red]</code> で色を変えたり、タグを使えば演出も思いのままだ！
+            </p>
+        </div>
+
+        <h2>メニュー画面 (Menu)</h2>
+        <div class="card">
+            <div class="method-sig">Q. メニュー画面を作んのが面倒くせぇ！！</div>
+            <p><strong>A. この面倒くさがりめ！！<code>Ton.Menu</code>と<code>TonMenuManager</code> があるじゃねえか！</strong><br>
+                ただな、正直かなり面倒くさいぜ。サンプルコードをいじくり回した方が手っ取り早いぜ！！<br>
+                自分で作ったほうがいいと思うなら、そうした方がいいぜ！！Mononotonkaのコードを直すのもありだぜ！
+            </p>
+        </div>
+
+        <h2>コンフィグ画面 (Config Menu)</h2>
+        <div class="card">
+            <div class="method-sig">Q. コンフィグ画面を作んのが面倒くせぇ！！</div>
+            <p><strong>A. ああもうわかったわかった！<code>Ton.ConfigMenu</code> があるぜ！</strong><br>
+                <code>Ton.ConfigMenu.Open</code> を呼ぶだけで、必要最低限のコンフィグ項目を含む画面が開くぜ！<br>
+                自分で作ったほうがいいと思うなら、そうした方がいいぜ！！Mononotonkaのコードを直すのもありだぜ！
+            </p>
+        </div>
+
+        <h2> ログ (Log)</h2>
+        <div class="card">
+            <div class="method-sig">Q. ログレベルとかねぇのかよ？</div>
+            <p><strong>A. あってもどうせ使わねぇから実装してねぇぜ！</strong><br>
+            </p>
+        </div>
+
+        <h2> プロパティ (Property)</h2>
+        <div class="card">
+            <div class="method-sig">Q. クラスのプロパティがあるのにマニュアルに記載してねぇぞ！！</div>
+            <p><strong>A. 基本的にユーザーには関数を利用してもらう設計だぜ！</strong><br>
+                勝手にプロパティを使うのは全然かまわねぇぜ！！
+            </p>
+        </div>
+
+        <h2> その他 (etc.)</h2>
+        <div class="card">
+            <div class="method-sig">Q. 要望あるんだが</div>
+            <p><strong>A. バグは教えてくれよな！！それ以外は自分でフォークして作ってくれよな！！</strong><br>
+            </p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. タイルマップ対応してねぇのかよ！</div>
+            <p><strong>A. 対応したいんだけど、タイルマップ対応したら次はアレじゃん、次はアレじゃん、ってなるじゃん？</strong><br>
+                マルチレイヤー対応、イベント対応、当たり判定、敵キャラ対応、キャラクターデータ管理、どこまでやるねんってなるじゃん？<br>
+                対応するかもしれないけど、いつになるかはわからねぇぜ！やっても中途半端になるかもな！
+            </p>
+        </div>
+
+        <div style="margin-top: 40px; text-align: center;">
+            <a href="overview.html" class="button">トップへ戻る</a>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonInput</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonInput</h1>
+        <p>キーボードとゲームパッドの入力を統合して扱います。「input.config」ファイルによるキーコンフィグもサポートします。<br>
+            ※仮想ボタン名（"Left", "A" など）は大文字小文字を区別しません。</p>
+
+        <h3>MouseButton Enum</h3>
+        <p>マウスボタン判定に使用する列挙型です。</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Enum Value</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Left</td>
+                    <td>左クリック</td>
+                </tr>
+                <tr>
+                    <td>Right</td>
+                    <td>右クリック</td>
+                </tr>
+                <tr>
+                    <td>Middle</td>
+                    <td>中ボタン（ホイールクリック）</td>
+                </tr>
+                <tr>
+                    <td>XButton1</td>
+                    <td>戻るボタン等（マウス依存）</td>
+                </tr>
+                <tr>
+                    <td>XButton2</td>
+                    <td>進むボタン等（マウス依存）</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Default Key Mappings</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Button Name</th>
+                    <th>Keyboard</th>
+                    <th>Gamepad</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Up</td>
+                    <td>Up Arrow</td>
+                    <td>DPad Up</td>
+                </tr>
+                <tr>
+                    <td>Down</td>
+                    <td>Down Arrow</td>
+                    <td>DPad Down</td>
+                </tr>
+                <tr>
+                    <td>Left</td>
+                    <td>Left Arrow</td>
+                    <td>DPad Left</td>
+                </tr>
+                <tr>
+                    <td>Right</td>
+                    <td>Right Arrow</td>
+                    <td>DPad Right</td>
+                </tr>
+                <tr>
+                    <td>A</td>
+                    <td>Z</td>
+                    <td>A Button</td>
+                </tr>
+                <tr>
+                    <td>B</td>
+                    <td>X</td>
+                    <td>B Button</td>
+                </tr>
+                <tr>
+                    <td>X</td>
+                    <td>C</td>
+                    <td>X Button</td>
+                </tr>
+                <tr>
+                    <td>Y</td>
+                    <td>A</td>
+                    <td>Y Button</td>
+                </tr>
+                <tr>
+                    <td>R</td>
+                    <td>W</td>
+                    <td>R Button</td>
+                </tr>
+                <tr>
+                    <td>L</td>
+                    <td>Q</td>
+                    <td>L Button</td>
+                </tr>
+                <tr>
+                    <td>Start</td>
+                    <td>Enter</td>
+                    <td>Start</td>
+                </tr>
+                <tr>
+                    <td>Select</td>
+                    <td>Space</td>
+                    <td>Back</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">void RegisterButton(string name, Keys key, Buttons btn)</div>
+            <p>仮想ボタンに入力を割り当てます（動的割り当て）。</p>
+            <ul>
+                <li><code>name</code>: 仮想ボタン名</li>
+                <li><code>key</code>: キーボードのキー (Keys列挙体)</li>
+                <li><code>btn</code>: ゲームパッドのボタン (Buttons列挙体)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool IsPressed(string buttonName)</div>
+            <p>指定した仮想ボタンが押されているかを取得します。</p>
+            <ul>
+                <li><code>buttonName</code>: 仮想ボタン名（"A", "B", "Start", "Up"など）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool IsJustPressed(string buttonName)</div>
+            <p>指定した仮想ボタンが「押された瞬間」かどうかを取得します。</p>
+            <ul>
+                <li><code>buttonName</code>: 仮想ボタン名</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool IsJustReleased(string buttonName)</div>
+            <p>指定した仮想ボタンが「離された瞬間」かどうかを取得します。</p>
+            <ul>
+                <li><code>buttonName</code>: 仮想ボタン名</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">double GetPressedDuration(string buttonName)</div>
+            <p>指定した仮想ボタンが押され続けている時間（秒）を取得します。<br>
+                押されていない場合は 0.0 を返します。</p>
+            <ul>
+                <li><code>buttonName</code>: 仮想ボタン名</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void ClearPressedDuration(string buttonName)</div>
+            <p>指定した仮想ボタンの押下時間を強制的に 0.0 にリセットします。<br>
+                長押しイベント後の再発火防止などに使用します。</p>
+            <ul>
+                <li><code>buttonName</code>: 仮想ボタン名</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">Vector2 GetVector()</div>
+            <p>方向入力（矢印キー、十字キー、左スティック）を統合したベクトル(-1.0～1.0)を取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Vector2 GetMousePosition()</div>
+            <p>仮想画面上の解像度に変換されたマウスカーソル座標を取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool IsMousePressed(MouseButton button)</div>
+            <p>指定したマウスボタンが押されているか判定します。</p>
+            <ul>
+                <li><code>button</code>: MouseButton.Left, MouseButton.Right, MouseButton.Middle など</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool IsMouseJustPressed(MouseButton button)</div>
+            <p>指定したマウスボタンが「押された瞬間」かどうか判定します。</p>
+            <ul>
+                <li><code>button</code>: MouseButton.Left, MouseButton.Right, MouseButton.Middle など</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool IsMouseJustReleased(MouseButton button)</div>
+            <p>指定したマウスボタンが「離された瞬間」かどうか判定します。</p>
+            <ul>
+                <li><code>button</code>: MouseButton.Left, MouseButton.Right, MouseButton.Middle など</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Vibrate(float seconds, float motorLeft, float motorRight)</div>
+            <p>ゲームパッドを振動させます。</p>
+            <ul>
+                <li><code>seconds</code>: 振動時間（秒）</li>
+                <li><code>motorLeft</code>: 左モーターの強さ(0.0～1.0)</li>
+                <li><code>motorRight</code>: 右モーターの強さ(0.0～1.0)</li>
+            </ul>
+        </div>
+
+
+        <h2>Sample Code</h2>
+        <pre><code>// In Initialize()
+// No specific initialization required for user code usually,
+// but you can load config or set up specific variables here.
+
+
+// In Update()
+// Check if 'A' button (e.g., Z key or Gamepad A) is Just Pressed
+if (Ton.Input.IsJustPressed("A"))
+{
+    // Jump action
+    player.Jump();
+}
+
+// Check if 'B' button is being held down
+if (Ton.Input.IsPressed("B"))
+{
+    // Dash action
+    player.Dash();
+}
+
+// Get Direction Vector (Arrow keys, WASD, or Left Stick)
+// Returns normalized vector or zero
+Vector2 dir = Ton.Input.GetVector();
+if (dir != Vector2.Zero)
+{
+    player.Move(dir);
+}
+
+// Get Mouse Position (in Virtual Coordinates)
+Vector2 mousePos = Ton.Input.GetMousePosition();
+
+// Vibrate Controller for 0.5 seconds
+if (player.IsDamaged)
+{
+    Ton.Input.Vibrate(0.5f, 1.0f, 1.0f);
+}</code></pre>
+
+        <h2>Configuration File (input.config)</h2>
+        <p>キーコンフィグファイル <code>input.config</code> を実行ファイルと同じディレクトリに配置することで、キー割り当てをカスタマイズできます。</p>
+        <ul>
+            <li><strong>配置場所</strong>: 実行ファイル（.exe）と同じフォルダ</li>
+            <li><strong>フォーマット</strong>: <code>VirtualButtonName,Keys,Buttons</code> (CSV形式)</li>
+        </ul>
+
+        <h3>Sample Configuration</h3>
+        <pre><code># This is comment
+# Format: Name,KeyboardKey,GamepadButton
+
+# 基本操作
+Up,Up,DPadUp
+Down,Down,DPadDown
+Left,Left,DPadLeft
+Right,Right,DPadRight
+
+# アクション
+A,Z,A
+B,X,B
+X,C,X
+Y,V,Y
+
+# メニュー操作
+Start,Enter,Start
+Select,Space,Back
+L,Q,LeftShoulder
+R,W,RightShoulder</code></pre>
+
+    </div>
+</body>
+
+</html>

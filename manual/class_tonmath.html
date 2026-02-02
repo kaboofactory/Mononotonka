@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonMath</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonMath</h1>
+        <p>ゲーム開発に役立つ数学・乱数などのユーティリティ関数群です。</p>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">int Rand(int min, int max)</div>
+            <p>指定範囲の整数の乱数を返します。</p>
+            <ul>
+                <li><code>min</code>: 最小値</li>
+                <li><code>max</code>: 最大値（排他的）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">float RandF(float min, float max)</div>
+            <p>指定範囲の浮動小数点の乱数を返します。</p>
+            <ul>
+                <li><code>min</code>: 最小値</li>
+                <li><code>max</code>: 最大値</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">float GetDistance(float x1, float y1, float x2, float y2)</div>
+            <p>二点間の距離を計算します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">float GetAngle(float x1, float y1, float x2, float y2)</div>
+            <p>二点間の角度（ラジアン）を計算します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool HitCheck(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)</div>
+            <p>二つの矩形の当たり判定（交差判定）を行います。</p>
+            <ul>
+                <li><code>x1, y1, w1, h1</code>: 矩形1の情報</li>
+                <li><code>x2, y2, w2, h2</code>: 矩形2の情報</li>
+            </ul>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// Random Integer [0, 100)
+int r = Ton.math.Rand(0, 100);
+
+// Random Float [0.0, 1.0]
+float f = Ton.math.RandF(0f, 1f);
+
+// Distance between (x1,y1) and (x2,y2)
+float dist = Ton.math.GetDistance(x1, y1, x2, y2);
+
+// Angle in radians
+float angle = Ton.math.GetAngle(playerX, playerY, mouseX, mouseY);
+
+// Simple AABB Collision
+bool isHit = Ton.math.HitCheck(
+    player.X, player.Y, 32, 32,
+    bullet.X, bullet.Y, 8, 8
+);
+if (isHit) { /* Damage */ }</code></pre>
+    </div>
+</body>
+
+</html>

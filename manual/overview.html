@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mononotonka Overview</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <img src="logo.png" alt="Mononotonka Logo" style="display: block; margin: 0 auto; max-width: 100%;">
+        <h1>Mononotonka Reference Manual</h1>
+        <p>Mononotonkaは、<strong>MonoGame</strong> フレームワークをベースにした、2Dゲーム開発を効率化・簡素化するためのラッパーライブラリです。(現在はPC用のみ)</p>
+
+        <div class="card" style="border-left: 5px solid #4CAF50;">
+            <h3>Getting Started</h3>
+            <p>初めての方はこちら：<a href="getting_started.html">インストールと初期設定 (Getting Started)</a></p>
+        </div>
+
+        <div class="card">
+            <h3>主な特徴</h3>
+            <div class="card">
+                <h3>主な特徴</h3>
+                <ul>
+                    <li><strong>シンプルなアクセス</strong>: <code>Ton</code> シングルトンクラスを通じて、描画、入力、音声などの機能へ統一的にアクセスできます。</li>
+                    <li><strong>2D描画 & エフェクト</strong>:
+                        仮想解像度による自動スケーリングに加え、テクスチャなしでのプリミティブ描画（スプライン曲線、稲妻、円弧など）も強力にサポート。
+                        レンダーターゲットやスクリーンフィルター（セピア、モノクロ、走査線など）、画面シェイク機能を標準で搭載しています。</li>
+                    <li><strong>リソース管理</strong>:
+                        画像、フォント、音声ファイルは文字列IDで管理され、大文字小文字を区別しません。不要リソースの自動解放機能（ゆるふわキャッシュ）も備えています。</li>
+                    <li><strong>データ管理・UI</strong>:
+                        JSON形式のセーブデータ管理、コンフィグメニュー画面、RPG風メッセージウィンドウ、パーティクルシステムなど、ゲーム開発に必要な周辺機能を網羅しています。</li>
+                    <li><strong>シーン管理</strong>: フェードイン・フェードアウトを伴うシーン遷移を簡単に実装できます。</li>
+                    <li><strong>入力システム</strong>: キーボードとゲームパッドに対応した仮想ボタン入力を提供。設定ファイルによるキーコンフィグも可能です。</li>
+                    <li><strong>実用的なサブシステム</strong>: メッセージウィンドウ制御、BGM/SE管理、コンフィグメニュー、簡易パーティクルなど、2Dゲームに必要な基本機能を搭載しています。
+                    </li>
+                    <li><strong>ウィンドウ制御</strong>: アスペクト比を維持した拡大縮小（レターボックス）や、フルスクリーン切り替えに対応しています。</li>
+                </ul>
+            </div>
+
+            <h2>アーキテクチャ</h2>
+            <p>Mononotonkaはシングルトンパターンを採用しており、<code>Ton</code> クラスのプロパティから各サブシステムへアクセスします。</p>
+
+            <div class="card">
+                <dl>
+                    <dt><code>Ton.Gra</code> (TonGraphics)</dt>
+                    <dd>画像、フォントの読み込みと管理、スプライトの描画、画面シェイク、スクリーンフィルターなどのグラフィックス機能を提供します。</dd>
+
+                    <dt><code>Ton.Sound</code> (TonSound)</dt>
+                    <dd>BGM (MP3/OGG) と SE (WAV) の再生管理、音量調節、フェード処理を行います。</dd>
+
+                    <dt><code>Ton.Input</code> (TonInput)</dt>
+                    <dd>キーボード、ゲームパッド、マウスの入力状態の取得、仮想ボタンの判定、入力の消費などの制御を行います。</dd>
+
+                    <dt><code>Ton.Scene</code> (TonScene)</dt>
+                    <dd>シーンのスタック管理、フェードイン・アウトを伴うシーン遷移を行います。</dd>
+
+                    <dt><code>Ton.Game</code> (TonGame)</dt>
+                    <dd>ウィンドウタイトル、解像度、フルスクリーン設定、FPS制御など、ゲーム全体のシステム設定を管理します。</dd>
+
+                    <dt><code>Ton.Msg</code> (TonMessage)</dt>
+                    <dd>RPGのようなメッセージウィンドウの表示、テキストの送り出し、制御タグの処理を行います。</dd>
+
+                    <dt><code>Ton.Storage</code> (TonStorage)</dt>
+                    <dd>セーブデータの読み書き（JSON形式）を管理します。</dd>
+
+                    <dt><code>Ton.Math</code> (TonMath)</dt>
+                    <dd>乱数生成、補間計算などの数学ヘルパー関数を提供します。</dd>
+
+                    <dt><code>Ton.Primitive</code> (TonPrimitive)</dt>
+                    <dd>円、矩形、三角形、スプライン曲線、稲妻、リボンなど、様々な図形描画機能を提供します。パーティクルやUI演出に役立ちます。</dd>
+
+                    <dt><code>Ton.Particle</code> (TonParticle)</dt>
+                    <dd>簡易パーティクルシステムの再生と管理を行います。</dd>
+
+                    <dt><code>Ton.Config</code> (TonConfigMenu)</dt>
+                    <dd>音量設定やウィンドウサイズ変更などを行うコンフィグ画面を提供します。</dd>
+
+                    <dt><code>Ton.Log</code> (TonLog)</dt>
+                    <dd>デバッグログの出力と管理を行います。</dd>
+                </dl>
+
+            </div>
+
+            <h2>ゆるふわキャッシュシステム (Yurufuwa Cache System)</h2>
+            <p>Mononotonkaは、<strong>「適当にロードして、適当にリリースする」</strong> 独自(嘘)のキャッシュシステム（通称：ゆるふわキャッシュシステム）を搭載しています。<br>
+                リソースは「コンテンツグループ (Content ID)」単位で管理され、適当にロードしてもよしなに計らってくれます。<br>
+                メモリの最大使用量はログ、または <code>Ton.Gra.TotalTextureMemory</code> / <code>Ton.Sound.TotalSoundMemory</code>
+                で確認できます。</p>
+
+            <div class="card">
+                <h3>仕組み</h3>
+                <p>リソースロード時に、第3引数で <code>contentId</code>（グループ名）を指定します（省略時は <code>"Default"</code>）。<br>
+                    指定されたグループごとに、以下のルールでメモリ管理が行われます。</p>
+                <ul>
+                    <li><strong>Defaultグループ (永続):</strong>
+                        <code>"Default"</code> グループに属するリソースは、明示的に破棄しない限り<strong>永続的</strong>にメモリに残ります。
+                        プレイヤーキャラ、基本UI、共通のSEなど、常に使用するリソースに適しています。
+                    </li>
+                    <li><strong>カスタムグループ (自動解放):</strong>
+                        <code>"Stage1"</code>, <code>"Battle"</code> など、任意の名前でグループ化できます。<br>
+                        これらのグループに所属する全てのリソースに対して、<strong>一定時間（デフォルト: 300秒 =
+                            5分）アクセスがないと、自動的にメモリから解放（キャッシュアウト）されます。</strong><br>
+                        タイムアウト時間は <code>Ton.Gra.SetCacheTimeout(seconds)</code> /
+                        <code>Ton.Sound.SetCacheTimeout(seconds)</code> で変更可能です。
+                    </li>
+                    <li><strong>即時解放:</strong>
+                        メモリが厳しい場合や、ステージ切り替え時などは、<code>Ton.Gra.Unload("Stage1")</code> のようにグループ名を指定して即座に解放することも可能です。</li>
+                </ul>
+                <p><strong>使い方:</strong></p>
+                <ul>
+                    <li>とりあえずずっと使うやつ → <code>LoadTexture("path", "key")</code> (Default)</li>
+                    <li>その場面だけで使うやつ → <code>LoadTexture("path", "key", "SceneName")</code></li>
+                    <li>シーン遷移時 → <code>Unload("SceneName")</code> を呼ぶか、放置して自動解放を待つ</li>
+                </ul>
+            </div>
+        </div>
+</body>
+
+</html>

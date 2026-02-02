@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonCharacter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonCharacter</h1>
+        <p><strong>TonCharacter</strong> は、2DアクションゲームやRPGにおける「キャラクター（エージェント）」を統合管理するための高レベルAPIクラスです。</p>
+        <p>このクラスを使用することで、個々のキャラクターの座標管理、物理演算（重力・摩擦）、状態遷移（待機・歩行・ジャンプ）、そしてアニメーション描画を極めて少ないコードで実装できます。</p>
+        <p>つまり、<strong>会話シーンでちびキャラを動かすのに便利なクラス</strong>です！</p>
+        <p><strong>ユーザーが行うのはアニメーションの設定と、移動やアクションのコマンドの入力だけ</strong>です！！</p>
+
+        <h3>主な機能:</h3>
+        <ul>
+            <li><strong>マルチエージェント管理:</strong> 複数のキャラクターをID（文字列）で識別し、一括して更新・描画します。</li>
+            <li><strong>簡易物理エンジン:</strong> 重力、床との衝突判定、摩擦抵抗、速度制御を自動で行います。</li>
+            <li><strong>アニメーション・ステートマシン:</strong> キャラクターの状態（Idle, Walk, Jumpなど）に応じて、登録されたアニメーションを自動的に切り替えます。</li>
+            <li><strong>自律移動:</strong> 指定座標への移動 (MoveTo) や、一定区間の往復 (RoundTrip) などの自律行動をサポートします。</li>
+            <li><strong>座標系:</strong> 内部計算は秒単位 (px/sec) で行われ、可変フレームレート下でも安定した動作を提供します。</li>
+            <li><strong>クリッピング:</strong> キャラクターの移動範囲を制限できます。範囲外に出ると反転します。</li>
+        </ul>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">void AddCharacter(string id, int x, int y, float gravity = 1800.0f)</div>
+            <p>キャラクターを追加します。</p>
+            <ul>
+                <li><code>id</code>: キャラクター識別用ID</li>
+                <li><code>x, y</code>: 初期座標（yは地面の高さとして設定されます）</li>
+                <li><code>gravity</code>: 重力加速度 (px/sec²)。デフォルトは 1800.0f です。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void RemoveCharacter(string id)</div>
+            <p>キャラクターを削除します。nullを指定すると全削除します。</p>
+            <ul>
+                <li><code>id</code>: キャラクターID</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void AddAnim(string id, CharacterAnimType type, string imageName, int x1, int y1,
+                int w, int h, int frameCount, int
+                duration, bool isLoop = true)</div>
+            <p>キャラクターにアニメーションパターンを登録します。</p>
+            <ul>
+                <li><code>id</code>: キャラクターID</li>
+                <li><code>type</code>: アニメーションの種類 (Idle, Walk, Jump, panick, UserDefine etc.)</li>
+                <li><code>imageName</code>: 画像名</li>
+                <li><code>x1, y1</code>: 画像内の開始座標</li>
+                <li><code>w, h</code>: 1フレームの幅と高さ</li>
+                <li><code>frameCount</code>: アニメーションのフレーム数</li>
+                <li><code>duration</code>: フレーム更新間隔(ms)</li>
+                <li><code>isLoop</code>: ループするかどうか</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetPhysics(string id, bool useGravity, bool checkGround, float friction)</div>
+            <p>物理挙動パラメータを設定します。</p>
+            <ul>
+                <li><code>useGravity</code>: 重力を適用するか</li>
+                <li><code>checkGround</code>: 地面（初期Y座標）で停止するか</li>
+                <li><code>friction</code>: 摩擦抵抗係数 (例: 5.0f)。大きいほど早く停止します。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void MoveTo(string id, int targetX, float speed)</div>
+            <p>指定X座標へ移動させます。</p>
+            <ul>
+                <li><code>targetX</code>: 目標X座標</li>
+                <li><code>speed</code>: 移動速度</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void PlayAction(string id, CharacterAnimType type)</div>
+            <p>登録済みのアニメーションを再生します。終了後はIdleに戻ります。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Stop(string id)</div>
+            <p>移動やアクションを強制停止し、Idle状態に戻します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetClipping(string id, bool enable, int minX, int maxX)</div>
+            <p>移動範囲制限（クリッピング）を設定します。範囲外に出ると反転します。</p>
+            <ul>
+                <li><code>enable</code>: 有効無効</li>
+                <li><code>minX, maxX</code>: 制限範囲(X座標)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Jump(string id, float vx, float vy)</div>
+            <p>キャラクターに速度を直接与えてジャンプさせます。</p>
+            <ul>
+                <li><code>vx, vy</code>: 初速 (Yは上方向がマイナス)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool IsMoving(string id)</div>
+            <p>自動移動中(MoveTo)かどうかを返します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool IsOnGround(string id)</div>
+            <p>接地しているかどうかを返します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Vector2 GetPos(string id)</div>
+            <p>キャラクターの現在座標を取得します。</p>
+            <ul>
+                <li>戻り値: 座標 (Vector2)。存在しない場合は Vector2.Zero を返します。</li>
+            </ul>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// In Initialize()
+// 1. Add Character "player" at (100, 300)
+Ton.character.AddCharacter("player", 100, 300);
+
+// 2. Register Animations
+Ton.character.AddAnim("player", CharacterAnimType.Idle, "player_sheet", 0, 0, 32, 32, 4, 200);
+Ton.character.AddAnim("player", CharacterAnimType.Walk, "player_sheet", 0, 32, 32, 32, 4, 100);
+Ton.character.AddAnim("player", CharacterAnimType.Jump, "player_sheet", 0, 64, 32, 32, 4, 100);
+Ton.character.AddAnim("player", CharacterAnimType.Surprise, "player_sheet", 0, 96, 32, 32, 4, 100, false);
+
+// 3. Set Physics
+Ton.character.SetPhysics("player", true, true, 5.0f);
+
+
+// In Update()
+// 4. Control (Example: Move when key is pressed)
+if (Ton.Input.IsKeyDown(Keys.Right))
+{
+    // Move to X=500 with speed 240.0 (px/sec)
+    Ton.character.MoveTo("player", 500, 240.0f);
+}
+
+// Perform One-shot Action
+if (Ton.Input.IsTrigger(Keys.Z))
+{
+    Ton.character.PlayAction("player", CharacterAnimType.Surprise);
+}
+
+// Patrol (Round Trip) - usually called once, maybe in Initialize or event
+// Ton.character.RoundTrip("enemy1", 100, 120.0f);</code></pre>
+    </div>
+</body>
+
+</html>

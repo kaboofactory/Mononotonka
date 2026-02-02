@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonLog</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonLog</h1>
+        <p>実行時ログをファイルに出力・管理します。ログファイルは <code>log/</code> フォルダに保存されます。</p>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">void Info(string message)</div>
+            <p>情報レベルのログを出力します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Warning(string message)</div>
+            <p>警告レベルのログを出力します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Error(string message)</div>
+            <p>エラーレベルのログを出力します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Debug(string message)</div>
+            <p>デバッグレベルのログを出力します。</p>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// Info log
+Ton.log.Info("Game Started.");
+
+// Warning
+if (resourceMissing)
+{
+    Ton.log.Warning("Resource 'xyz' not found, using default.");
+}
+
+// Error (includes caller info automatically)
+try 
+{
+    // ...
+}
+catch (Exception ex)
+{
+    Ton.log.Error($"Critical Failure: {ex.Message}");
+}
+
+// Logs are saved to 'log/ton.yyyymmdd.log'</code></pre>
+    </div>
+</body>
+
+</html>

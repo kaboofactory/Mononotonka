@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonSaveLoadMenu</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonSaveLoadMenu</h1>
+        <p>セーブ・ロード画面のUIと処理を提供するクラスです。<br>
+            <code>Ton.Data</code> と統合されており、自動的にゲームデータの保存と読み込みを行います。
+        </p>
+
+        <h2>Relationship with TonGameData</h2>
+        <p>このメニュークラスは、<code>Ton.Data</code> (<code>TonGameData</code> インスタンス) と密結合しています。</p>
+        <ul>
+            <li><strong>Save</strong>: <code>Open(Mode.SaveOnly)</code> や <code>ExecuteAutoSave</code> を実行すると、現在の
+                <code>Ton.Data</code> インスタンスがそのままシリアライズされます。
+            </li>
+            <li><strong>Load</strong>: ロードを実行すると、新しい <code>TonGameData</code> インスタンスが生成され、<code>Ton.Data</code>
+                (<code>Ton.Instance.gamedata</code>) が新しいインスタンスに完全に置換されます。</li>
+        </ul>
+
+        <h2>Properties</h2>
+        <div class="card">
+            <div class="method-sig">Action OnLoaded { get; set; }</div>
+            <p>ロード処理完了後に実行されるコールバックです。シーン遷移や、ロード直後のUI更新などを制御するために使用します。</p>
+        </div>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">void Open(TonSaveLoadMode mode)</div>
+            <p>セーブ/ロード画面を開きます。引数なしで実行でき、自動的に現在の <code>Ton.Data</code> を扱います。</p>
+            <ul>
+                <li><code>mode</code>: 画面モード
+                    <ul>
+                        <li><code>SaveOnly</code>: セーブのみ可能</li>
+                        <li><code>LoadOnly</code>: ロードのみ可能</li>
+                        <li><code>BothDefaultSave</code>: 両方可能（初期タブはセーブ）</li>
+                        <li><code>BothDefaultLoad</code>: 両方可能（初期タブはロード）</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">static void ExecuteAutoSave()</div>
+            <p>現在アクティブなスロット（またはオートセーブ用スロット）に即座に上書き保存を行います。UIは表示されません。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool IsOpen()</div>
+            <p>現在メニューが開いているかどうかを返します。</p>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// 単純にメニューを開く
+if (Ton.Input.IsJustPressed("Start"))
+{
+    Ton.SaveLoadMenu.Open(TonSaveLoadMode.BothDefaultSave);
+}
+
+// ロード後の挙動を設定（初期化時など）
+Ton.SaveLoadMenu.OnLoaded = () => {
+    Ton.Log.Info("Game Loaded!");
+    // シーン遷移など
+};
+</code></pre>
+    </div>
+</body>
+
+</html>

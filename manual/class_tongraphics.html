@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonGraphics</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonGraphics</h1>
+        <p>2D画像の描画、テキスト描画、図形描画、ポストエフェクトなどを提供します。<br>
+            基本的にすべての描画座標は「仮想解像度」に基づきます。<br>
+            仮想的なウィンドウに描画し、最後に実際のウィンドウに拡大/縮小して描画します。<br>
+            これにより、仮想解像度と実際の解像度を分離することができます。<br>
+            ※画像の登録ID、フォントID、レンダーターゲット名などのリソースキーは大文字小文字を区別しません。<br>
+            ※テクスチャリソースは「コンテンツグループID」によって管理され、グループ単位での手動/自動メモリ解放が行われます。</p>
+
+        <h2>Structures</h2>
+        <div class="card">
+            <div class="method-sig">class TonDrawParam</div>
+            <p>基本的な描画オプション指定用クラスです。</p>
+            <ul>
+                <li><code>float Alpha</code>: 不透明度 (0.0～1.0)。(既定値 1.0)</li>
+                <li><code>Color Color</code>: 乗算する色。(既定値 White)</li>
+                <li><code>bool FlipH</code>: 左右反転するか。(既定値 false)</li>
+                <li><code>bool FlipV</code>: 上下反転するか。(既定値 false)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">class TonDrawParamEx</div>
+            <p>より詳細な描画オプション指定用クラスです。</p>
+            <ul>
+                <li><code>float ScaleX</code>: X軸方向の拡大率。(既定値 1.0)</li>
+                <li><code>float ScaleY</code>: Y軸方向の拡大率。(既定値 1.0)</li>
+                <li><code>float Angle</code>: 回転角度（ラジアン）。(既定値 0.0)</li>
+                <li><code>float Alpha</code>: 不透明度。(既定値 1.0)</li>
+                <li><code>Color Color</code>: 乗算する色。(既定値 White)</li>
+                <li><code>bool FlipH</code>: 左右反転するか。(既定値 false)</li>
+                <li><code>bool FlipV</code>: 上下反転するか。(既定値 false)</li>
+                <li><code>float MosaicSize</code>: モザイクサイズ（注: 現在の実装では詳細パラメータとしてのモザイクは未サポートの可能性があります）。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">class TonAnimState</div>
+            <p>アニメーション制御用クラスです。</p>
+            <ul>
+                <li><code>bool IsLoop</code>: ループ再生するか。(既定値 true)</li>
+                <li><code>int FrameCount</code>: アニメーションの総フレーム数。</li>
+                <li><code>int FrameDuration</code>: 1フレームの表示時間(ms)。</li>
+                <li><code>float Timer</code>: 現在のフレーム経過時間(秒)。(Read Only)</li>
+                <li><code>int CurrentFrame</code>: 現在のフレームインデックス。(Read Only)</li>
+                <li><code>float TimeAfterFinished</code>: アニメーション終了後の経過時間(秒)。(Read Only)</li>
+                <li><code>bool IsFinished</code>: アニメーション再生が完了しているか（非ループ時のみ有効）。(Read Only)</li>
+                <li><code>int x1, y1</code>: 画像上の切り出し開始座標(左上)。</li>
+                <li><code>int width, height</code>: 1フレームの幅と高さ。</li>
+                <li><code>AnimDirection direction</code>: アニメーションの並び方向。(LeftToRight または TopToBottom)</li>
+                <li><code>void Update(GameTime gameTime)</code>: アニメーションの時間を進めます。<b>必ずシーンの <code>Update()</code>
+                        メソッド内で毎フレーム呼び出してください。</b>呼び出さないとアニメーションが停止したままになります。</li>
+                <li><code>void Reset()</code>: アニメーション状態（タイマー、フレーム、終了時間）を初期化します。</li>
+                <li><code>static TonAnimState CreateLoop(int width, int height, int frameCount, int duration, double
+                        totalSeconds, int x1 = 0, int y1 = 0)</code>:
+                    時刻からフレームを計算した状態を生成します。Update不要でDraw内で完結する簡易アニメーション用。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">class TonFilterParam</div>
+            <p>スクリーンフィルター指定用クラスです。</p>
+            <ul>
+                <li><code>ScreenFilterType Type</code>: フィルタの種類。
+                    <ul>
+                        <li>None: なし</li>
+                        <li>Greyscale: グレースケール</li>
+                        <li>Sepia: セピア</li>
+                        <li>ScanLine: 走査線（スキャンライン）</li>
+                        <li>Mosaic: モザイク</li>
+                        <li>Blur: ブラー（ぼかし）</li>
+                        <li>ChromaticAberration: 色収差</li>
+                        <li>Vignette: ビネット（周辺減光）</li>
+                        <li>Invert: 階調反転</li>
+                        <li>Distortion: 歪み（揺らぎ）</li>
+                        <li>Noise: ノイズ</li>
+                        <li>EdgeDetect: エッジ検出</li>
+                        <li>RadialBlur: ラジアルブラー（放射状ぼかし）</li>
+                        <li>Posterize: ポスタライズ（階調変更）</li>
+                        <li>FishEye: 魚眼レンズ</li>
+                    </ul>
+                </li>
+                <li><code>float Amount</code>: 適用強度。フィルタの種類によって意味合いが異なりますが、概ね 0.0～1.0
+                    の範囲で指定します（Blurなどはピクセル単位の強度になる場合もあります）。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">class TonBlendState</div>
+            <p>描画の合成モードを定義するクラスです。以下の静的プロパティが主に使用されます。</p>
+            <ul>
+                <li><code>TonBlendState.AlphaBlend</code>: 通常の透過合成 (既定値)</li>
+                <li><code>TonBlendState.Additive</code>: 加算合成 (光の表現など)</li>
+                <li><code>TonBlendState.NonPremultiplied</code>: アルファ乗算済みでない画像の合成</li>
+                <li><code>TonBlendState.Opaque</code>: 不透明 (上書き)</li>
+            </ul>
+        </div>
+
+        <h2>Properties</h2>
+        <div class="card">
+            <div class="method-sig">long TotalTextureMemory</div>
+            <p>現在ロードされているテクスチャ（フォント、レンダーターゲット含む）の推定メモリ使用量（バイト）を取得します。</p>
+        </div>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">Texture2D LoadTexture(string path, string keyName, string contentId = "Default")
+            </div>
+            <p>画像を読み込み、キャッシュします。</p>
+            <ul>
+                <li><code>path</code>: コンテンツパス（Content/image/からの相対パス、拡張子なし）</li>
+                <li><code>keyName</code>: 登録名（必須）</li>
+                <li><code>contentId</code>: コンテンツグループID。指定したIDごとにリソースがグループ化されます。"Default"グループは自動解放されません。(既定値 "Default")
+                </li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Unload(string contentId)</div>
+            <p>指定したコンテンツグループのリソースをすべて解放し、破棄します。<br>
+                ※"Default"グループは解放できません。</p>
+            <ul>
+                <li><code>contentId</code>: アンロード対象のコンテンツグループID</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetCacheTimeout(double seconds)</div>
+            <p>未使用リソースグループの自動破棄（キャッシュアウト）までの時間を設定します。<br>
+                デフォルトは300秒（5分）です。<br>
+                この時間を過ぎても使用されなかった非デフォルトグループ（<code>contentId != "Default"</code>）は、定期的なメモリクリーンアップ時に破棄されます。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">int GetTextureWidth(string name)</div>
+            <p>指定した画像（またはレンダーターゲット）の幅を取得します。見つからない場合は0を返します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">int GetTextureHeight(string name)</div>
+            <p>指定した画像（またはレンダーターゲット）の高さを取得します。見つからない場合は0を返します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Clear(Color? color = null)</div>
+            <p>現在の描画先（画面またはレンダーターゲット）を指定色で塗りつぶしてクリアします。<br>
+                <strong>注意:</strong> 描画処理は遅延実行（バッチ処理）されるため、<code>Draw</code> メソッドの後に <code>Clear</code> を呼ぶと、
+                <code>Draw</code> で予約した内容ごと消去されてしまう（あるいは Clear の上に描画されるなど、意図しない挙動になる）場合があります。<br>
+                必ず <strong>フレームの最初（描画を行う前）</strong> に呼び出してください。
+            </p>
+            <ul>
+                <li><code>color</code>: クリアする色（省略時は <code>Color.Black</code>）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Draw(string imageName, int toX, int toY, int fromX, int fromY, int w, int h,
+                TonDrawParam param = null)</div>
+            <p>登録済みの画像を描画します。</p>
+            <ul>
+                <li><code>imageName</code>: 画像の登録ID</li>
+                <li><code>toX</code>, <code>toY</code>: 描画先座標 (左上基準)</li>
+                <li><code>fromX</code>, <code>fromY</code>: 描画元画像の切り出し開始位置（左上）</li>
+                <li><code>w</code>, <code>h</code>: 描画するサイズ（幅・高さ）</li>
+                <li><code>param</code>: 描画オプション</li>
+            </ul>
+            <p>以下のオーバーロードが存在します。</p>
+            <ul>
+                <li><code>Draw(string imageName, int toX, int toY, TonDrawParam param = null)</code>:
+                    画像全体をそのサイズのまま、指定座標に描画します。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawBackground(string imageName, TonDrawParam param = null)</div>
+            <p>画像をアスペクト比を維持しつつ、画面全体を覆うように拡大して描画します（Aspect Fill）。<br>
+                余白ができないように、中央寄せで配置され、上下または左右のはみ出した部分はクリップされます。</p>
+            <ul>
+                <li><code>imageName</code>: 画像の登録ID</li>
+                <li><code>param</code>: 描画オプション（色や反転など）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawEx(string imageName, float toX, float toY, int fromX, int fromY, int w, int
+                h, TonDrawParamEx param)</div>
+            <p>詳細なパラメータを指定して画像を描画します（中心座標基準）。</p>
+            <ul>
+                <li><code>imageName</code>: 画像の登録ID</li>
+                <li><code>toX</code>, <code>toY</code>: 描画座標 (中心基準)</li>
+                <li><code>fromX</code>, <code>fromY</code>: 描画元画像の切り出し開始位置（左上）</li>
+                <li><code>w</code>, <code>h</code>: 描画するサイズ</li>
+                <li><code>param</code>: 拡張描画オプション（回転、スケール、反転など）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawAnim(string imageName, int x, int y, TonAnimState anim, TonDrawParam
+                param = null)</div>
+            <p>アニメーション定義に基づいて画像の一部を切り出して描画します。</p>
+            <ul>
+                <li><code>imageName</code>: 画像の登録ID</li>
+                <li><code>x</code>, <code>y</code>: 描画座標 (左上基準、整数)</li>
+                <li><code>anim</code>: アニメーション状態</li>
+                <li><code>param</code>: 描画オプション</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawAnimEx(string imageName, float x, float y, TonAnimState anim,
+                TonDrawParamEx param)</div>
+            <p>アニメーション描画の詳細版です（中心座標基準）。</p>
+            <ul>
+                <li><code>imageName</code>: 画像の登録ID</li>
+                <li><code>x</code>, <code>y</code>: 描画座標 (中心基準)</li>
+                <li><code>anim</code>: アニメーション状態</li>
+                <li><code>param</code>: 拡張描画オプション</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawText(string text, int x, int y, Color? color = null, float scale = 1.0f,
+                string fontId = null)</div>
+            <p>テキストを描画します。</p>
+            <ul>
+                <li><code>text</code>: 文字列</li>
+                <li><code>x</code>, <code>y</code>: 描画座標</li>
+                <li><code>color</code>: 文字色（nullの場合はWhite）</li>
+                <li><code>scale</code>: 拡大率（既定値 1.0）</li>
+                <li><code>fontId</code>: フォントID（nullの場合はデフォルトフォント）</li>
+            </ul>
+            <p>以下のオーバーロードが存在します。</p>
+            <ul>
+                <li><code>DrawText(string text, int x, int y)</code>: 白、等倍、デフォルトフォント</li>
+                <li><code>DrawText(string text, int x, int y, string fontId)</code>: 白、等倍、指定フォント</li>
+                <li><code>DrawText(string text, int x, int y, float scale)</code>: 白、指定倍率、デフォルトフォント</li>
+                <li><code>DrawText(string text, int x, int y, string fontId, float scale)</code>: 白、指定倍率、指定フォント</li>
+                <li><code>DrawText(string text, int x, int y, string fontId, Color color)</code>: 指定色、等倍、指定フォント</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawTextEx(string text, float x, float y, Color? color = null, float scale =
+                1.0f, float rotation = 0f, string fontId = null)</div>
+            <p>テキストを回転・拡大縮小して描画します（中心座標基準）。</p>
+            <ul>
+                <li><code>text</code>: 文字列</li>
+                <li><code>x</code>, <code>y</code>: 描画座標（中心）</li>
+                <li><code>color</code>: 文字色</li>
+                <li><code>scale</code>: 拡大率</li>
+                <li><code>rotation</code>: 回転角度（ラジアン）</li>
+                <li><code>fontId</code>: フォントID</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void LoadFont(string path, string name)</div>
+            <p>フォントファイル（.spritefont）を読み込みます。<br>
+                デフォルトのフォントを使用する場合は ID に "default" を指定してください。</p>
+            <ul>
+                <li><code>path</code>: コンテンツパス（例: "font/default"）</li>
+                <li><code>name</code>: 登録ID</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void FillRect(float x, float y, float w, float h, Color color)</div>
+            <p>塗りつぶされた矩形を描画します。</p>
+            <ul>
+                <li><code>x</code>, <code>y</code>: 座標</li>
+                <li><code>w</code>, <code>h</code>: 幅と高さ</li>
+                <li><code>color</code>: 色</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawRect(int x, int y, int w, int h, Color color, int thickness = 1)</div>
+            <p>矩形の枠線を描画します。</p>
+            <ul>
+                <li><code>x</code>, <code>y</code>: 座標</li>
+                <li><code>w</code>, <code>h</code>: 幅と高さ</li>
+                <li><code>color</code>: 色</li>
+                <li><code>thickness</code>: 線の太さ（デフォルト: 1）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DrawLine(Vector2 start, Vector2 end, Color color, float thickness = 1f)</div>
+            <p>2点間の直線を描画します。</p>
+            <ul>
+                <li><code>start</code>: 開始点</li>
+                <li><code>end</code>: 終了点</li>
+                <li><code>color</code>: 色</li>
+                <li><code>thickness</code>: 線の太さ（デフォルト: 1）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void FillRoundedRect(string imageName, int x, int y, int w, int h, int pw, int ph)
+            </div>
+            <p>9パッチ画像を使用して角丸矩形（ウィンドウ枠など）を描画します。</p>
+            <ul>
+                <li><code>imageName</code>: 9パッチ画像の登録ID</li>
+                <li><code>x</code>, <code>y</code>: 座標</li>
+                <li><code>w</code>, <code>h</code>: 全体の幅と高さ</li>
+                <li><code>pw</code>, <code>ph</code>: 角パーツの幅と高さ（9分割の隅のサイズ）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void ShakeScreen(float seconds, float ratioX, float ratioY)</div>
+            <p>画面全体を振動させます。</p>
+            <ul>
+                <li><code>seconds</code>: 持続時間（秒）</li>
+                <li><code>ratioX</code>: 横方向の揺れの強さ (0.0 ～ 1.0)</li>
+                <li><code>ratioY</code>: 縦方向の揺れの強さ (0.0 ～ 1.0)</li>
+                <li><code>frequency</code>: 振動数 (回/秒)。デフォルト: 20.0f</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetAntiAliasing(bool enabled)</div>
+            <p>描画時のアンチエイリアス（スムージング）の有効・無効を切り替えます。<br>
+                ドット絵をくっきり表示したい場合は <code>false</code> に設定してください。<br>
+                <strong>注意:</strong> 設定は <strong>次回の描画バッチ（SetBlendStateやSetRenderTargetの呼び出し、または次フレームの開始時）から</strong>
+                有効になります。描画の途中で切り替える場合は注意してください（直後の描画に反映されない場合があります）。
+            </p>
+            <ul>
+                <li><code>enabled</code>: <code>true</code>=有効（滑らか）, <code>false</code>=無効（ドット重視）。初期値は <code>true</code>
+                    です。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetScreenFilter(string targetName, TonFilterParam param)</div>
+            <p>画面またはレンダーターゲットにフィルター（ポストエフェクト）を適用します。<br>
+                <strong>注意:</strong> メインスクリーン（targetName=null）へのフィルタは <strong>そのフレームの全描画が完了した後（ポストエフェクトとして）</strong>、
+                レンダーターゲットのフィルタは <strong>そのターゲットを描画する際</strong> に適用されます。<br>
+                複数のフィルタを適用したい場合は、<code>AddScreenFilter</code> を使用するか、<code>SetScreenFilter</code> を呼んだ後に
+                <code>AddScreenFilter</code> を追加してください。（<code>SetScreenFilter</code> は既存のフィルタをクリアします）
+            </p>
+            <ul>
+                <li><code>targetName</code>: 適用するターゲット名。nullを指定するとメインスクリーンに適用されます。</li>
+                <li><code>param</code>: フィルターのパラメータ</li>
+            </ul>
+            <p>以下のオーバーロードが存在します。</p>
+            <ul>
+                <li><code>void SetScreenFilter(TonFilterParam param)</code>: メインスクリーンに適用します。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void AddScreenFilter(string targetName, TonFilterParam param)</div>
+            <p>画面またはレンダーターゲットにフィルターを追加します。<br>
+                既存のフィルターリストの末尾に追加され、順番に適用されます（マルチパスフィルタ）。
+            </p>
+            <ul>
+                <li><code>targetName</code>: 適用するターゲット名。</li>
+                <li><code>param</code>: フィルターのパラメータ</li>
+            </ul>
+            <p>以下のオーバーロードが存在します。</p>
+            <ul>
+                <li><code>void AddScreenFilter(TonFilterParam param)</code>: メインスクリーンに追加します。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void ClearScreenFilter(string targetName = null)</div>
+            <p>指定したターゲットに設定されている全フィルターを解除します。</p>
+            <ul>
+                <li><code>targetName</code>: ターゲット名（nullの場合はメインスクリーン）。</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">void SetBlendState(TonBlendState blend)</div>
+            <p>描画の合成モードを変更します（加算合成など）。呼び出すと現在のバッチが描画され、新しいバッチが開始されます。</p>
+            <ul>
+                <li><code>blend</code>: TonBlendState (Additive, AlphaBlendなど)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">TonBlendState GetBlendState()</div>
+            <p>現在設定されているブレンドステートを取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetRenderTarget(string targetName = null)</div>
+            <p>描画先を切り替えます。nullを指定すると仮想画面（メインスクリーン）に戻ります。</p>
+            <ul>
+                <li><code>targetName</code>: レンダーターゲットの登録ID</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void CreateRenderTarget(string targetName, int width, int height)</div>
+            <p>新しいレンダーターゲット（オフスクリーン描画領域）を作成します。<br>
+                登録した <code>targetName</code> は、<code>Draw</code> メソッドなどの <code>imageName</code>
+                としてそのまま指定でき、テクスチャとして描画可能です。</p>
+            <ul>
+                <li><code>targetName</code>: レンダーターゲット（画像）の登録ID</li>
+                <li><code>width</code>, <code>height</code>: サイズ</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void ReleaseRenderTarget(string targetName)</div>
+            <p>作成したレンダーターゲットをメモリから解放します。</p>
+            <ul>
+                <li><code>targetName</code>: 登録ID</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void DebugSaveFontTexture(string savePath, string id = null)</div>
+            <p>（デバッグ用）指定したフォントのテクスチャをPNG画像として保存します。</p>
+            <ul>
+                <li><code>savePath</code>: 保存パス（相対パス可）</li>
+                <li><code>id</code>: フォントID（nullの場合はデフォルトフォント）</li>
+            </ul>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// In Initialize()
+// Load texture 'player.png' from Content/image/player.png and register as 'player'
+// Loaded into "Default" group (permanent)
+Ton.Gra.LoadTexture("image/player", "player");
+
+// Load texture into specific group "Stage1"
+Ton.Gra.LoadTexture("image/enemy", "enemy", "Stage1");
+
+// Create Animation State
+var anim = new TonAnimState { 
+    width = 32, height = 32, FrameCount = 4, FrameDuration = 100,
+    IsLoop = true
+};
+
+
+// In Update()
+// Update animation state
+anim.Update(gameTime); 
+
+if (player.IsDamaged)
+{
+    // Apply Screen Shake (Duration 0.5s, Magnitude 5px, Frequency 20Hz)
+    Ton.Gra.ShakeScreen(0.5f, 5.0f, 20.0f);
+}
+
+
+// In Draw()
+// Simple Draw at (100, 100). Size assumed 32x32 from src(0,0).
+var tex = Ton.Gra.LoadTexture("player", "player"); // LoadTexture returns cached texture if already loaded
+if (tex != null)
+{
+    Ton.Gra.Draw("player", 100, 100, 0, 0, tex.Width, tex.Height);
+}
+
+// Draw with Parameter (Flip Horizontal, Red Tint, 50% Alpha)
+var param = new TonDrawParam() { FlipH = true, Color = Color.Red, Alpha = 0.5f };
+Ton.Gra.Draw("player", 200, 100, 0, 0, 32, 32, param);
+
+// Draw Animation
+Ton.Gra.DrawAnim("player_sheet", 300, 100, anim);
+
+// Draw Text using default font
+Ton.Gra.DrawText("Hello World", 10, 10);
+// Draw Text with custom font
+Ton.Gra.DrawText("Title Text", 10, 50, "TitleFont");
+
+// Fill Screen with semi-transparent black
+Ton.Gra.FillRect(0, 0, 640, 360, new Color(0, 0, 0, 128));
+
+// Apply Sepia Filter to Main Screen (Sets state for this frame's post-processing)
+Ton.Gra.SetScreenFilter(new TonFilterParam(ScreenFilterType.Sepia, 1.0f));
+
+// Layer System Example (Manual RenderTarget)
+// 1. Switch to a render target (automatically created if not exists)
+Ton.Gra.SetRenderTarget("EffectLayer");
+    Ton.Gra.Clear(Color.Transparent); // Clear layer
+    Ton.Gra.Draw("char", 0, 0); 
+    Ton.Gra.DrawText("Hello Filter", 0, 50); // Text can be filtered too!
+
+// 2. Revert to main screen
+Ton.Gra.SetRenderTarget();
+
+// 3. Set filter to the layer
+Ton.Gra.SetScreenFilter("EffectLayer", new TonFilterParam(ScreenFilterType.Distortion, 0.5f));
+
+// 4. Draw the layer to screen
+Ton.Gra.Draw("EffectLayer", 100, 100, 0, 0, Ton.Gra.GetTextureWidth("EffectLayer"), Ton.Gra.GetTextureHeight("EffectLayer"));
+
+// Draw Additive Blending (e.g. for particles)
+Ton.Gra.SetBlendState(TonBlendState.Additive);
+Ton.Gra.Draw("sparkle", 400, 200, 0, 0, 16, 16);
+Ton.Gra.SetBlendState(TonBlendState.AlphaBlend); // Revert</code></pre>
+    </div>
+</body>
+
+</html>

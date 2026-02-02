@@ -1,0 +1,689 @@
+using System;
+using System.Collections.Generic;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
+using Microsoft.Xna.Framework.Content;
+using Microsoft.Xna.Framework.Media;
+
+namespace Mononotonka
+{
+    /// <summary>
+    /// サウンド管理クラスです。
+    /// BGM（ストリーミング再生）とSE（効果音）の再生を管理します。
+    /// </summary>
+    public class TonSound
+    {
+        private IServiceProvider _serviceProvider;
+        private string _rootDirectory;
+        
+        // リソース管理クラス
+        private class ResourceInfo<T>
+        {
+            public T Data;
+            public string ContentId; // 所属するContentGroup ID
+            public long Size; // バイト数（推定）
+            public List<SoundEffectInstance> Instances = new List<SoundEffectInstance>(); // SE用インスタンス管理
+            public float BaseVolume = 1.0f;
+        }
+
+        // コンテンツグループ管理クラス
+        private class ContentGroup
+        {
+            public ContentManager Manager;
+            public double LastUsed;
+            public List<string> ResourceNames = new List<string>(); // このグループに属するリソース名のリスト
+
+            public ContentGroup(IServiceProvider serviceProvider, string rootDirectory)
+            {
+                Manager = new ContentManager(serviceProvider, rootDirectory);
+            }
+        }
+
+        // メモリ使用量（推定）
+        private long _totalSoundMemory = 0;
+        private long _maxSoundMemory = 0;
+
+        /// <summary>
+        /// 現在のサウンドメモリ使用量（バイト）を取得します。
+        /// </summary>
+        public long TotalSoundMemory => _totalSoundMemory;
+
+        /// <summary>
+        /// 最大サウンドメモリ使用量（バイト）を取得します。
+        /// </summary>
+        public long MaxSoundMemory => _maxSoundMemory;
+
+        private long EstimateSeSize(SoundEffect se)
+        {
+            if (se == null) return 0;
+            // 推定: 44.1kHz, 16bit, Stereo = 176400 bytes/sec
+            return (long)(se.Duration.TotalSeconds * 44100 * 2 * 2);
+        }
+
+        // リソース管理
+        private Dictionary<string, ResourceInfo<SoundEffect>> _seResources = new Dictionary<string, ResourceInfo<SoundEffect>>(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, ResourceInfo<Song>> _bgmResources = new Dictionary<string, ResourceInfo<Song>>(StringComparer.OrdinalIgnoreCase);
+        
+        // フォールバック用SE（遅延生成、共有）
+        private SoundEffect _fallbackSe;
+
+        
+        // コンテンツグループ管理
+        private Dictionary<string, ContentGroup> _contentGroups = new Dictionary<string, ContentGroup>(StringComparer.OrdinalIgnoreCase);
+        
+        // BGM 状態
+        private float _masterVolume = 1.0f;
+        private string _currentBgmName = null;
+        private bool _isBgmPlaying = false;
+        
+        // Resume用
+        private string _pausedBgmName = null;
+        private TimeSpan _pausedBgmPosition = TimeSpan.Zero;
+
+        // フェード処理用
+        private float _bgmVolume = 1.0f;
+        private float _targetBgmVolume = 1.0f;
+        private float _fadeSpeed = 0f; // 1秒あたりの変化量
+        private bool _isFading = false;
+        private bool _stopAfterFade = false;
+
+        private double _cacheTimeout = 300.0; // 5分（未使用リソースの破棄基準）
+        private double _lastCleanupTime = 0;
+        private double _lastBgmUpdateTime = 0;
+
+        /// <summary>
+        /// 初期化処理です。
+        /// </summary>
+        /// <param name="serviceProvider">ServiceProvider</param>
+        /// <param name="rootDirectory">RootDirectory</param>
+        public void Initialize(IServiceProvider serviceProvider, string rootDirectory = "Content")
+        {
+            _serviceProvider = serviceProvider;
+            _rootDirectory = rootDirectory;
+            
+            // "Default" グループの作成（ContentManagerは共有ではなく新規作成とするか、引数で渡されたものを使うかだが、ここでは新規作成）
+            // Initialize時にContentManagerが渡されなくなったため、内部で作成する
+            GetOrCreateContentGroup("Default");
+        }
+        
+        // ヘルパー: グループ取得・作成
+        private ContentGroup GetOrCreateContentGroup(string contentId)
+        {
+            if (!_contentGroups.ContainsKey(contentId))
+            {
+                var group = new ContentGroup(_serviceProvider, _rootDirectory);
+                group.LastUsed = 0; // Usage updated on play/load
+                _contentGroups[contentId] = group;
+                Ton.Log.Info($"[Sound] Created ContentGroup: {contentId}");
+            }
+            return _contentGroups[contentId];
+        }
+
+        /// <summary>
+        /// フォールバック用のSE（ブザー音）を取得・生成します。
+        /// </summary>
+        private SoundEffect GetFallbackSE()
+        {
+            if (_fallbackSe != null) return _fallbackSe;
+
+            // 矩形波の生成 (44.1kHz, Mono)
+            int sampleRate = 44100;
+            double duration = 0.5; // 秒
+            int samples = (int)(sampleRate * duration);
+            byte[] buffer = new byte[samples * 2]; // 16bit
+
+            double frequency = 220.0; // Hz (Low pitch)
+            
+            for (int i = 0; i < samples; i++)
+            {
+                double t = (double)i / sampleRate;
+                // 矩形波: 周期の前半は+1、後半は-1
+                short amplitude = (short)(Math.Sign(Math.Sin(2.0 * Math.PI * frequency * t)) * 10000);
+                
+                buffer[i * 2] = (byte)(amplitude & 0xFF);
+                buffer[i * 2 + 1] = (byte)((amplitude >> 8) & 0xFF);
+            }
+
+            _fallbackSe = new SoundEffect(buffer, sampleRate, AudioChannels.Mono);
+            return _fallbackSe;
+        }
+
+        // ヘルパー: LastUsed更新
+        private void UpdateLastUsed(string contentId, double totalSeconds)
+        {
+             if (_contentGroups.ContainsKey(contentId))
+             {
+                 _contentGroups[contentId].LastUsed = totalSeconds;
+             }
+        }
+
+        /// <summary>
+        /// 未使用リソースの破棄時間を設定します。
+        /// デフォルトは600秒(10分)です。
+        /// </summary>
+        /// <param name="seconds">秒数</param>
+        public void SetCacheTimeout(double seconds)
+        {
+            _cacheTimeout = seconds;
+        }
+
+        /// <summary>
+        /// 更新処理。BGMのフェード処理やリソースのクリーンアップを行います。
+        /// </summary>
+        public void Update(GameTime gameTime)
+        {
+            float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            double totalSeconds = gameTime.TotalGameTime.TotalSeconds;
+
+            // BGM再生中は定期的にリソース使用時間を更新（1秒ごと）
+            if (_isBgmPlaying && !string.IsNullOrEmpty(_currentBgmName) && _bgmResources.ContainsKey(_currentBgmName))
+            {
+                if (totalSeconds - _lastBgmUpdateTime >= 1.0)
+                {
+                    _lastBgmUpdateTime = totalSeconds;
+                    UpdateLastUsed(_bgmResources[_currentBgmName].ContentId, totalSeconds);
+                }
+            }
+
+            // フェード処理
+            if (_isFading)
+            {
+                if (_bgmVolume < _targetBgmVolume)
+                {
+                    _bgmVolume += _fadeSpeed * elapsed;
+                    if (_bgmVolume >= _targetBgmVolume)
+                    {
+                        _bgmVolume = _targetBgmVolume;
+                        _isFading = false;
+                    }
+                }
+                else if (_bgmVolume > _targetBgmVolume)
+                {
+                    _bgmVolume -= _fadeSpeed * elapsed;
+                    if (_bgmVolume <= _targetBgmVolume)
+                    {
+                        _bgmVolume = _targetBgmVolume;
+                        _isFading = false;
+                        if (_stopAfterFade)
+                        {
+                            MediaPlayer.Stop();
+                            _isBgmPlaying = false;
+                        }
+                    }
+                }
+                MediaPlayer.Volume = _bgmVolume * _masterVolume * _bgmResources[_currentBgmName].BaseVolume;
+            }
+
+            // リソース破棄チェック (10秒ごとに実行)
+            if (totalSeconds - _lastCleanupTime >= 10.0)
+            {
+                _lastCleanupTime = totalSeconds;
+
+                // SEインスタンスの定期クリーンアップ（停止したものをリストから外す）
+                foreach (var kvp in _seResources)
+                {
+                    if (kvp.Value.Instances != null)
+                    {
+                         // 停止または破棄されたインスタンスを除去
+                         kvp.Value.Instances.RemoveAll(i => i.State == SoundState.Stopped || i.IsDisposed);
+                    }
+                }
+
+                // グループごとのクリーンアップ
+                List<string> removeGroups = new List<string>();
+                foreach (var kvp in _contentGroups)
+                {
+                    if (kvp.Key == "Default") continue; // Defaultは除外
+                    
+                    if (totalSeconds - kvp.Value.LastUsed > _cacheTimeout)
+                    {
+                        removeGroups.Add(kvp.Key);
+                    }
+                }
+                
+                foreach (string gid in removeGroups)
+                {
+                    Unload(gid);
+                    Ton.Log.Info($"[MEM] Auto-released ContentGroup: {gid}");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 指定したContentIDのグループをアンロードします。"Default"グループはアンロードできません。
+        /// </summary>
+        /// <param name="contentId">グループID</param>
+        public void Unload(string contentId)
+        {
+            if (contentId == "Default")
+            {
+                Ton.Log.Warning("Cannot unload 'Default' content group.");
+                return;
+            }
+
+            if (_contentGroups.ContainsKey(contentId))
+            {
+                var group = _contentGroups[contentId];
+                
+                // グループに属するリソースの解放処理
+                // SEのインスタンス停止
+                foreach (var resName in group.ResourceNames)
+                {
+                    if (_seResources.ContainsKey(resName))
+                    {
+                        var res = _seResources[resName];
+                        if (res.Instances != null)
+                        {
+                            foreach(var i in res.Instances) { i.Stop(); i.Dispose(); }
+                        }
+                        _totalSoundMemory -= res.Size;
+                        _seResources.Remove(resName);
+                    }
+                    else if (_bgmResources.ContainsKey(resName))
+                    {
+                        // 再生中なら止める
+                        if (_currentBgmName == resName) StopBGM(0);
+                        _bgmResources.Remove(resName);
+                    }
+                }
+
+                // ContentManagerのアンロードと破棄
+                group.Manager.Unload();
+                group.Manager.Dispose();
+                
+                _contentGroups.Remove(contentId);
+                Ton.Log.Info($"[MEM] Unloaded ContentGroup: {contentId}");
+            }
+        }
+
+        /// <summary>
+        /// すべてのサウンドリソースを停止・解放します。
+        /// </summary>
+        public void UnloadAll()
+        {
+            StopAll();
+
+            // 全グループ解放（Default含む）... としたいが、Terminate以外ではDefaultは残すべきか？
+            // UnloadAllは「全て」なのでDefaultも含めてリセットし、再作成する挙動とする
+            
+            List<string> groupKeys = new List<string>(_contentGroups.Keys);
+            foreach (var key in groupKeys)
+            {
+                // UnloadメソッドはDefaultを弾くので、直接処理するか、Unloadメソッドの引数で強制フラグを持たせる等の対応が必要
+                // ここでは直接処理を行う
+                var group = _contentGroups[key];
+                
+                // ... SE Instance Stop ...
+                foreach (var resName in group.ResourceNames) {
+                     if (_seResources.ContainsKey(resName)) {
+                         var res = _seResources[resName];
+                         if (res.Instances != null) foreach(var i in res.Instances) { i.Stop(); i.Dispose(); }
+                     }
+                }
+                
+                group.Manager.Unload();
+                group.Manager.Dispose();
+            }
+
+            _contentGroups.Clear();
+            GetOrCreateContentGroup("Default"); // Defaultだけ再作成
+
+            _seResources.Clear();
+            _bgmResources.Clear();
+            _totalSoundMemory = 0;
+            _maxSoundMemory = 0;
+            
+            Ton.Log.Info("[MEM] Unloaded All Sounds.");
+            
+            // フォールバックも破棄
+            if (_fallbackSe != null && !_fallbackSe.IsDisposed)
+            {
+                _fallbackSe.Dispose();
+                _fallbackSe = null;
+            }
+        }
+
+        /// <summary>
+        /// 効果音(SE)を読み込みます。
+        /// </summary>
+        public void LoadSound(string path, string name, string contentId = "Default", float baseVolume = 1.0f)
+        {
+             baseVolume = MathHelper.Clamp(baseVolume, 0.0f, 1.0f);
+
+             // 既にロード済みならグループ更新等はせずリターン（簡易実装）
+             if (_seResources.ContainsKey(name)) return;
+             
+             var group = GetOrCreateContentGroup(contentId);
+             
+              try {
+                  var se = group.Manager.Load<SoundEffect>(path);
+                  long size = EstimateSeSize(se);
+                  
+                  var info = new ResourceInfo<SoundEffect>
+                  {
+                      Data = se,
+                      ContentId = contentId,
+                      Size = size,
+                      BaseVolume = baseVolume
+                  };
+                  _seResources[name] = info;
+                  group.ResourceNames.Add(name);
+                  
+                  _totalSoundMemory += size;
+                  if (_totalSoundMemory > _maxSoundMemory) _maxSoundMemory = _totalSoundMemory;
+                  Ton.Log.Info($"[MEM] Loaded SE: {path} (Group: {contentId})");
+                  
+                  // ロード時もUsage更新
+                  if (Ton.Game != null) UpdateLastUsed(contentId, Ton.Game.GetTotalGameTime().TotalSeconds);
+
+              } catch (Exception ex) { Ton.Log.Error($"SE Load Failed: {path} {ex.Message}"); }
+        }
+
+        /// <summary>
+        /// BGMを読み込みます。
+        /// </summary>
+        public void LoadBGM(string path, string name, string contentId = "Default", float baseVolume = 1.0f)
+        {
+             baseVolume = MathHelper.Clamp(baseVolume, 0.0f, 1.0f);
+
+             if (_bgmResources.ContainsKey(name)) return;
+
+             var group = GetOrCreateContentGroup(contentId);
+
+             try {
+                 var song = group.Manager.Load<Song>(path);
+                 var info = new ResourceInfo<Song>
+                 {
+                     Data = song,
+                     ContentId = contentId,
+                     Size = 0,
+                     BaseVolume = baseVolume
+                 };
+                 _bgmResources[name] = info;
+                 group.ResourceNames.Add(name);
+
+                 Ton.Log.Info($"[MEM] Loaded BGM: {path} (Group: {contentId})");
+
+                 if (Ton.Game != null) UpdateLastUsed(contentId, Ton.Game.GetTotalGameTime().TotalSeconds);
+
+             } catch (Exception ex) { Ton.Log.Error($"BGM Load Failed: {path} {ex.Message}"); }
+        }
+
+        /// <summary>
+        /// BGMをループ再生します。
+        /// <param name="bgmName">登録名</param>
+        /// <param name="bResume">trueなら中断箇所からの再生を試みます(保存された名前と一致する場合のみ)</param>
+        /// <param name="fadeSeconds">フェードインにかける秒数(0で即時再生)</param>
+        /// <param name="volume">音量(0.0-1.0)</param>
+        /// </summary>
+        public void PlayBGM(string bgmName, float fadeSeconds = 0.0f, float volume = 1.0f)
+        {
+            // リソースが無ければフォールバックSEを鳴らす（エラー通知）
+            if (!_bgmResources.ContainsKey(bgmName))
+            {
+                 Ton.Log.Warning($"PlayBGM: Resource '{bgmName}' not found. Playing fallback.");
+                 try 
+                 {
+                     var fbWithVol = GetFallbackSE().CreateInstance();
+                     fbWithVol.Volume = MathHelper.Clamp(volume * _masterVolume, 0f, 1f);
+                     fbWithVol.Play();
+                 }
+                 catch { /* mute */ }
+                 return;
+            }
+
+            if (_currentBgmName == bgmName && _isBgmPlaying)
+            {
+                // すでに再生中の場合、音量変更のみ反映
+                _targetBgmVolume = volume;
+                if (fadeSeconds > 0)
+                {
+                    _isFading = true;
+                    _fadeSpeed = Math.Abs(_targetBgmVolume - _bgmVolume) / fadeSeconds;
+                }
+                else
+                {
+                    _bgmVolume = MathHelper.Clamp(volume, 0.0f, 1.0f);
+                    MediaPlayer.Volume = MathHelper.Clamp(_bgmVolume * _masterVolume * _bgmResources[bgmName].BaseVolume, 0.0f, 1.0f);
+                    _isFading = false;
+                    _stopAfterFade = false; // フェードアウト中の再開などを想定してフラグを折る
+                }
+                return;
+            }
+
+            // 新しいBGMの再生（既存のフェード状態はリセット）
+            _isFading = false;
+            _stopAfterFade = false;
+
+            Song song = _bgmResources[bgmName].Data;
+            MediaPlayer.IsRepeating = true;
+            
+            _currentBgmName = bgmName;
+            _targetBgmVolume = volume;
+            
+            // Usage更新
+            UpdateLastUsed(_bgmResources[bgmName].ContentId, Ton.Game.GetTotalGameTime().TotalSeconds);
+
+            // Resume判定
+            TimeSpan startPos = TimeSpan.Zero;
+            bool doResume = false;
+            if (_pausedBgmName == bgmName)
+            {
+                startPos = _pausedBgmPosition;
+                doResume = true;
+                _pausedBgmName = null; // Resumeしたらリセット
+            }
+            
+            if (fadeSeconds > 0)
+            {
+                _bgmVolume = 0f;
+                _isFading = true;
+                _fadeSpeed = volume / fadeSeconds;
+                
+                // Play
+                try {
+                    if (doResume) MediaPlayer.Play(song, startPos);
+                    else MediaPlayer.Play(song);
+                } catch {
+                     MediaPlayer.Play(song); // Fallback
+                }
+                
+                MediaPlayer.Volume = 0f;
+                _isBgmPlaying = true;
+            }
+            else
+            {
+                _bgmVolume = volume;
+                _isFading = false;
+
+                // Play
+                try {
+                    if (doResume) MediaPlayer.Play(song, startPos);
+                    else MediaPlayer.Play(song);
+                } catch {
+                     MediaPlayer.Play(song); // Fallback
+                }
+
+                MediaPlayer.Volume = MathHelper.Clamp(_bgmVolume * _masterVolume * _bgmResources[bgmName].BaseVolume, 0.0f, 1.0f);
+                _isBgmPlaying = true;
+            }
+        }
+
+        /// <summary>
+        /// BGMを停止します。
+        /// </summary>
+        /// <param name="fadeSeconds">フェードアウトにかける秒数(0で即時停止)</param>
+        /// <param name="bPause">trueなら現在再生中のBGM情報を一時保存します(Pause扱い)</param>
+        public void StopBGM(bool bPause = false)
+        {
+            StopBGM(0.0f, bPause);
+        }
+        public void StopBGM(float fadeSeconds)
+        {
+            StopBGM(fadeSeconds, false);
+        }
+        public void StopBGM(float fadeSeconds = 0.0f, bool bPause = false)
+        {
+            if (!_isBgmPlaying) return;
+
+            if (bPause && !string.IsNullOrEmpty(_currentBgmName))
+            {
+                _pausedBgmName = _currentBgmName;
+                try
+                {
+                    _pausedBgmPosition = MediaPlayer.PlayPosition;
+                }
+                catch
+                {
+                    _pausedBgmPosition = TimeSpan.Zero;
+                }
+            }
+
+            if (fadeSeconds > 0)
+            {
+                _targetBgmVolume = 0f;
+                _isFading = true;
+                _fadeSpeed = _bgmVolume / fadeSeconds;
+                _stopAfterFade = true;
+            }
+            else
+            {
+                MediaPlayer.Stop();
+                _isBgmPlaying = false;
+                _currentBgmName = null;
+            }
+        }
+
+        /// <summary>
+        /// 効果音(SE)を再生します。
+        /// </summary>
+        /// <param name="seName">登録名</param>
+        /// <param name="volume">音量(0.0-1.0)</param>
+
+        public void PlaySE(string seName, float volume = 1.0f)
+        {
+            if (!_seResources.ContainsKey(seName))
+            {
+                 // リソース消失（または未ロード）
+                 Ton.Log.Warning($"PlaySE: Resource '{seName}' not found. Playing fallback.");
+                 try
+                 {
+                     var fbWithVol = GetFallbackSE().CreateInstance();
+                     fbWithVol.Volume = MathHelper.Clamp(volume * _masterVolume, 0f, 1f);
+                     fbWithVol.Play();
+                 }
+                 catch { /* mute */ }
+                 return;
+            }else
+            {
+                var res = _seResources[seName];
+                var instance = res.Data.CreateInstance();
+                instance.Volume = MathHelper.Clamp(volume * res.BaseVolume * _masterVolume, 0.0f, 1.0f);
+                instance.Play();
+
+                // 管理リストに追加
+                if (res.Instances == null) res.Instances = new List<SoundEffectInstance>();
+                res.Instances.Add(instance);
+
+                UpdateLastUsed(res.ContentId, Ton.Game.GetTotalGameTime().TotalSeconds);
+            }
+        }
+
+        /// <summary>
+        /// すべての音を停止します（主にBGM）。
+        /// </summary>
+        public void StopAll()
+        {
+            StopBGM(0);
+            // Effectの停止はインスタンス管理が必要なため、ここではBGMのみ停止します。
+        }
+
+        /// <summary>
+        /// マスター音量を設定します。
+        /// </summary>
+        /// <param name="volume">音量(0.0-1.0)</param>
+        public void SetMasterVolume(float volume)
+        {
+            _masterVolume = MathHelper.Clamp(volume, 0.0f, 1.0f);
+            if (_isBgmPlaying && !_isFading)
+            {
+                MediaPlayer.Volume = _bgmVolume * _masterVolume * _bgmResources[_currentBgmName].BaseVolume;
+            }
+        }
+
+        /// <summary>
+        /// マスター音量を取得します。
+        /// </summary>
+        public float GetMasterVolume()
+        {
+            return _masterVolume;
+        }
+
+        /// <summary>
+        /// 現在再生中のBGMの再生位置を取得します。
+        /// </summary>
+        /// <returns>再生位置(TimeSpan)。再生していない場合はZero。</returns>
+        public TimeSpan GetBGMPosition()
+        {
+            if (!_isBgmPlaying) return TimeSpan.Zero;
+            try
+            {
+                return MediaPlayer.PlayPosition;
+            }
+            catch
+            {
+                return TimeSpan.Zero;
+            }
+        }
+
+        /// <summary>
+        /// 現在再生中のBGMの長さを取得します。
+        /// </summary>
+        /// <returns>長さ(TimeSpan)。再生していない場合はZero。</returns>
+        public TimeSpan GetBGMLength()
+        {
+            if (!_isBgmPlaying || string.IsNullOrEmpty(_currentBgmName) || !_bgmResources.ContainsKey(_currentBgmName))
+            {
+                return TimeSpan.Zero;
+            }
+            return _bgmResources[_currentBgmName].Data.Duration;
+        }
+
+        /// <summary>
+        /// 終了処理。
+        /// </summary>
+        public void Terminate()
+        {
+            StopAll();
+            if (_fallbackSe != null && !_fallbackSe.IsDisposed)
+            {
+                _fallbackSe.Dispose();
+                _fallbackSe = null;
+            }
+        }
+        /// <summary>
+        /// デバッグ用：指定したグループの最終使用時刻を1時間前に設定し、強制的にキャッシュ切れ扱いにします。
+        /// </summary>
+        public void DebugForceExpireCache(string contentId)
+        {
+            if (Ton.Game == null) return;
+            
+            if (contentId == "Default")
+            {
+                Ton.Log.Warning("[Sound] Debug: Cannot expire 'Default' group.");
+                return;
+            }
+
+            if (_contentGroups.ContainsKey(contentId))
+            {
+                double now = Ton.Game.GetTotalGameTime().TotalSeconds;
+                _contentGroups[contentId].LastUsed = now - 3600.0;
+                Ton.Log.Info($"[Sound] Debug: Forced cache expiration for group '{contentId}'.");
+            }
+            else
+            {
+                Ton.Log.Warning($"[Sound] Debug: ContentGroup '{contentId}' not found.");
+            }
+        }
+    }
+}

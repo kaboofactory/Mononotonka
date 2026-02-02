@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonScene</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonScene</h1>
+        <p>ゲームのシーン（場面）遷移を管理します。</p>
+
+        <h2>Interfaces</h2>
+        <div class="card">
+            <div class="method-sig">interface IScene</div>
+            <p>シーンクラスが実装すべきインターフェースです。</p>
+            <ul>
+                <li><code>void Initialize()</code>: 初期化処理</li>
+                <li><code>void Terminate()</code>: 終了処理</li>
+                <li><code>void Update(GameTime gameTime)</code>: 更新処理</li>
+                <li><code>void Draw()</code>: 描画処理</li>
+            </ul>
+        </div>
+
+        <h2>Scene Template</h2>
+        <div class="card">
+            <div class="method-sig">class TonSceneTemplate</div>
+            <p>新しいシーンを作成するためのテンプレートクラスです（<code>TonSceneTemplate.cs</code>）。<br>
+                このファイルをコピー＆リネームし、クラス名を変更するだけですぐに新しいシーンとして利用できます。</p>
+            <ul>
+                <li><code>Initialize()</code>: リソース読み込みなどを記述する場所</li>
+                <li><code>Terminate()</code>: リソース破棄などを記述する場所</li>
+                <li><code>Update()</code>: ゲームロジックを記述する場所</li>
+                <li><code>Draw()</code>: 描画処理を記述する場所</li>
+            </ul>
+        </div>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">void Change(IScene nextScene, float durationOut = 0.0f, float durationIn = -1.0f,
+                Color fadeColor = default)
+            </div>
+            <p>指定したシーンへ遷移します。フェードアウト→フェードインのアニメーションを伴います。</p>
+            <ul>
+                <li><code>nextScene</code>: 次のシーンのインスタンス</li>
+                <li><code>durationOut</code>: フェードアウト（暗転）にかかる時間（秒）</li>
+                <li><code>durationIn</code>: フェードイン（明転）にかかる時間（秒）。(省略時または負の値で <code>durationOut</code> と同じ)</li>
+                <li><code>fadeColor</code>: フェードの色（デフォルトは黒）</li>
+            </ul>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// Implementation of a Scene
+public class TitleScene : IScene
+{
+    public void Initialize() { /* Load Resources */ }
+    public void Update(GameTime gameTime)
+    {
+        // Transition to GameScene when 'A' is pressed
+        if (Ton.Input.IsJustPressed("A"))
+        {
+            // Change scene over 1.0 seconds, fading through Black
+            Ton.Scene.Change(new GameScene(), 1.0f, Color.Black);
+        }
+    }
+    public void Draw() { /* Draw Title */ }
+    public void Terminate() { /* Cleanup */ }
+}
+
+// In Game1.Initialize()
+// Set initial scene
+Ton.Scene.Change(new TitleScene(), 0f); // Instant change</code></pre>
+    </div>
+</body>
+
+</html>

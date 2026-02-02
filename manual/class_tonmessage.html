@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonMessage</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonMessage</h1>
+        <p>ADVゲームのようなメッセージウィンドウ機能を提供します。スクリプトテキスト内のタグにより演出を制御できます。</p>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">void LoadScript(string filePath, string scriptName = null)</div>
+            <p>スクリプトファイルを読み込み、再生を開始します。</p>
+            <ul>
+                <li><code>filePath</code>: Contentルートからの相対パス (例: "script/test.txt")</li>
+                <li><code>scriptName</code>: スクリプト内のラベル名 (例: "Opening")。nullの場合はファイル全体を再生します。</li>
+            </ul>
+            <p><strong>注意:</strong> MGCB Editorでスクリプトファイルを追加する際は、<strong>Build Action</strong>を <code>Copy</code>
+                に設定してください。多分UTF-8(BOM無し)がいいです。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetWindowRect(int x, int y, int width, int height)</div>
+            <p>メッセージウィンドウの表示位置とサイズを設定します。</p>
+            <ul>
+                <li><code>x, y</code>: 左上座標</li>
+                <li><code>width, height</code>: サイズ</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Show(string scriptText)</div>
+            <p>テキストを表示キューに追加し、ウィンドウを表示します。</p>
+            <ul>
+                <li><code>scriptText</code>: 表示するテキスト（タグ含む）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Next()</div>
+            <p>メッセージを送り、次のページへ進むか、表示を終了します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Close()</div>
+            <p>ウィンドウを閉じます。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool IsBusy()</div>
+            <p>テキスト送り中、または入力待ち状態かどうかを返します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetTextStyle(float scale, float lineSpacing, float kerningOffset = 0f)</div>
+            <p>文字の基本サイズ、行間の高さ(px)、文字間隔のオフセット(px)を設定します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Update(GameTime gameTime, bool isInput = false)</div>
+            <p>メッセージの文字送り処理や待機時間の更新を行います。毎フレーム呼び出してください。</p>
+            <ul>
+                <li><code>gameTime</code>: ゲーム時間情報</li>
+                <li><code>isInput</code>: ページ送り/スキップ入力があった場合に true を渡します。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetTextSpeed(float speedMs)</div>
+            <p>デフォルトの文字送り速度(1文字あたりの表示時間ms)を設定します（初期値=50ms）。</p>
+            <ul>
+                <li><code>speedMs</code>: 文字送り時間(ミリ秒)。小さいほど高速になります。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">string GetEvent()</div>
+            <p><code>[event:xxx]</code>タグでキューイングされたイベントIDを取得します。</p>
+        </div>
+
+        <h2>Supported Tags</h2>
+        <div class="card">
+            <h3>使用可能なタグ一覧</h3>
+            <p>テキスト中に以下のタグを埋め込むことで、表示を制御できます。</p>
+            <ul>
+                <li><code>[next]</code>: 入力待ちを行い、ページ送りします。<code>[next:ms]</code> (例: <code>[next:1000]</code>)
+                    と記述すると、入力待ちをせずに指定ミリ秒後に強制ページ送りします。[next]以降その行の内容は無視されます。</li>
+                <li><code>[wait:ms]</code>: 指定ミリ秒待機します。(例: <code>[wait:1000]</code>)</li>
+                <li><code>[speed:ms]</code>: 文字送り速度(1文字あたりのミリ秒)を変更します。設定は即時反映され、時間を消費しません。</li>
+                <li><code>[color:Name/Hex]</code>: 文字色を変更します。(例: <code>[color:Red]</code>)</li>
+                <li><code>[size:pt]</code>: 文字サイズを変更します。(例: <code>[size:32]</code>)</li>
+                <li><code>[shake:intensity]</code>: 文字を振動させます（正弦波）。<code>[shake:x,y,speed]</code>で縦横の揺れ幅、振動速度を指定可能です。(例:
+                    <code>[shake:2]</code>, <code>[shake:5,0,50]</code>)
+                </li>
+                <li><code>[end]</code>: ページ送りを待ち、入力があったらウィンドウを閉じてスクリプトを終了します。以降のテキストは無視されます。</li>
+                <li><code>[rotate:degrees]</code>: 文字の回転角度(度数法)を設定します。(例: <code>[rotate:45]</code>)</li>
+                <li><code>[font:fontId]</code>: 使用するフォントを変更します。登録済みのフォントIDを指定してください。</li>
+                <li><code>[reset]</code>: 文字スタイル（色、サイズ、回転、速度、フォント）を初期値に戻します。</li>
+                <li><code>[icon:imageName]</code>: 指定した画像アイコンを文中に表示します。文字間オフセット(KerningOffset)が適用されます。</li>
+                <li><code>[event:ID]</code>: イベントIDを発行します（GetEventで取得可能）。</li>
+                <li><code>[input:mode]</code>: ユーザー入力によるスキップ/ページ送りの有効無効を切り替えます。
+                    <code>[input:disable]</code>で無効化し、<code>[input:enable]</code>で再度有効化します。強制イベントシーンなどで使用します。
+                </li>
+            </ul>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// In Initialize()
+// Set position and size
+Ton.Msg.SetWindowRect(20, 400, 600, 150);
+
+// Show Message Script
+string script = 
+    "Hello.[wait:500] This is [color:Red]Red Text[reset].\n" +
+    "Welcome to [icon:icon_star] Mononotonka.[next]" +
+    "Select an option:\n" +
+    "[event:opt1] Option 1 (Yes)\n" +
+    "[event:opt2] Option 2 (No)";
+Ton.Msg.Show(script);
+
+
+// In Update()
+// Advance text on input ("A" button or B button)
+bool isInput = Ton.Input.IsJustPressed("A") || Ton.Input.IsJustPressed("B");
+Ton.Msg.Update(gameTime, isInput); // Don't forget to pass gameTime!
+
+// Check for Event (Selection)
+string eventId = Ton.Msg.GetEvent();
+if (eventId != null)
+{
+    if (eventId == "opt1") { /* Selected Yes */ }
+    else if (eventId == "opt2") { /* Selected No */ }
+}
+
+// Check if busy
+if (Ton.Msg.IsBusy())
+{
+    // Pause game logic while message is showing?
+}</code></pre>
+        <h2>Script Format</h2>
+        <p>スクリプトファイル内では、行頭に <code>#</code> を付けることで複数のスクリプトを記述できます。</p>
+        <p>また、行頭に <code>;</code> を付けるとコメント行となり、表示されません。</p>
+        <pre><code>#Opening
+; これはコメントです
+[icon:Hero] こんにちは！
+これはオープニングです。[next]
+
+#Ending
+[icon:Hero] ありがとう！
+また会いましょう。[next]</code></pre>
+
+        <h2>Sample Code</h2>
+        <pre><code>// Initialize
+Ton.msg.Initialize();
+
+// Load script from file (Play "Opening" section)
+Ton.msg.LoadScript("script/scenario.txt", "Opening");
+
+// Manual Control
+if (Ton.input.IsJustPressed("A"))
+{
+    Ton.msg.Next();
+}</code></pre>
+    </div>
+</body>
+
+</html>

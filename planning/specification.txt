@@ -1,0 +1,638 @@
+■初期仕様のAI投下用の仕様書です。現仕様ではありませんが、参考までに。
+
+あなたは熟練したC#およびMonoGameのゲームエンジン開発者です。
+私が設計した2Dゲーム開発用ラッパーライブラリ「Mononotonka」の実装コードを作成してください。
+
+# 開発方針
+- **シングルトンパターン**: `Ton` クラスを唯一の入り口とし、`ton.gra.Draw()` のようにアクセスさせます。
+- **コードファースト**: 開発者が煩わしいリソース管理や初期化コードを書かなくて済むよう、内部で自動化してください。
+- **ドキュメント**: 全てのパブリックメソッドに、引数の意味だけでなく「何をする関数か」という概要（Summary）を記載したXMLドキュメントコメントを必ず記述してください。
+- **リソース管理（重要）**: アプリケーションフォルダ配下のリソース（`*.png`, `*.wav`, `*.mp3`, `*.fx`）は、MonoGameのContent Pipeline (`.mgcb`) を通じて自動的にビルドされる構成採用。`.fx` (シェーダー) についてはピクセルシェーダーのコードも作成してください。
+
+以下は詳細なAPI仕様です。基本的にはこの仕様に従って実装してください。
+プランニングし、不明な点があれば実装前に確認してください。
+2Dゲーム開発をより簡単にするアイデアがあれば教えて下さい。
+
+---
+
+# 0. フォルダ構成
+
+ [アプリケーションが作成(フォルダがない場合は自動的に作成すること)]
+ ./       アプリケーションフォルダ(*.exe等)
+ ./log/   ログファイル
+ ./save/  セーブデータファイル(*.sav)
+
+ [MGCB Editorで作成するリソース(開発者が登録します)]
+ ./Content/image/    イメージファイル(*.png 等 -> .xnb)
+ ./Content/sound/    サウンドファイル(*.wav, *.mp3 等 -> .xnb)
+ ./Content/shader/   ピクセルシェーダー(*.fx -> .xnb)
+
+ [あなたが作成するリソースコード]
+ ./shader/  ピクセルシェーダー(*.fx) のHLSLコード
+
+# 1. 共通アクセス・管理 (class Ton)
+シングルトン、もしくは静的クラスとして実装し、各モジュールのインスタンスを保持してください。
+
+**プロパティ**:
+- `ton.log`: `TonLog` クラスのインスタンス
+- `ton.game`: `TonGame` クラスのインスタンス
+- `ton.input`: `TonInput` クラスのインスタンス
+- `ton.gra`: `TonGraphics` クラスのインスタンス
+- `ton.sound`: `TonSound` クラスのインスタンス
+- `ton.msg`: `TonMessage` クラスのインスタンス
+- `ton.Character`: `TonCharacter` クラスのインスタンス
+- `ton.configmenu`: `TonConfigMenu` クラスのインスタンス
+- `ton.scene`: `TonScene` クラスのインスタンス
+- `ton.math`: `TonMath` クラスのインスタンス
+
+**ライフサイクルメソッド**:
+- `void Initialize(Game game, GraphicsDeviceManager graphics)`: 各マネージャの初期化を行う。
+- `void Update(GameTime gameTime)`: 各マネージャのUpdateを呼び出す。
+- `void Draw(GameTime gameTime)`: 各マネージャのDrawを呼び出す。
+- `void Terminate()`: 終了処理。リソースの解放を行う。
+
+---
+
+# 2. ログクラス (class TonLog)
+`[CallerFilePath]`, `[CallerLineNumber]` 属性を利用し、呼び出し元情報を自動取得してください。
+保存先は実行ファイルの `log` フォルダ、ファイル名は `ton.yyyyMMddHHmmss.log`、最大30ファイル保持です。
+
+**メソッド**:
+- `void Info(string message, string file = "", int line = 0)`
+  - message: 出力するログ本文
+  - file: (自動付与) 呼び出し元のソースファイルパス
+  - line: (自動付与) 呼び出し元の行番号
+- `void Warning(string message, string file = "", int line = 0)`
+  - 概要: 警告情報をログに出力します。
+  - (引数はInfoと同じ)
+- `void Error(string message, string file = "", int line = 0)`
+  - 概要: エラー情報をログに出力します。
+  - (引数はInfoと同じ)
+- `void Debug(string message, string file = "", int line = 0)`
+  - 概要: デバッグ情報をログに出力します。
+  - (引数はInfoと同じ)
+
+---
+
+# 3. 基本処理クラス (class TonGame)
+ウィンドウ制御とFPS管理を行います。
+
+**メソッド**:
+- `void SetWindowSize(int width, int height)`
+  - 概要: アプリケーション自体のウィンドウサイズを変更します。
+  - width: アプリケーションウィンドウの幅 (px)
+  - height: アプリケーションウィンドウの高さ (px)
+- `void SetVirtualResolution(int width, int height)`
+  - 概要: ゲーム内の論理描画領域（仮想解像度）を設定します。これに合わせて描画時に拡大縮小が行われます。
+  - width: ゲーム内の論理描画領域の幅 (px)
+  - height: ゲーム内の論理描画領域の高さ (px)
+- `void ToggleFullScreen(bool isFullscreen)`: ウィンドウモードとフルスクリーンの設定
+  - isFullscreen: trueならフルスクリーン、falseならウィンドウモードにします。
+  - 概要: ウィンドウモードとフルスクリーンモードを切り替えます。
+- `float GetFPS()`: 現在のフレームレートを取得
+  - 概要: 現在のフレームレートを取得します。
+- `void Exit()`: ゲームを終了する
+  - 概要: ゲームを終了します。
+
+---
+
+# 4. ゲームコントローラクラス (class TonInput)
+キーボードとゲームパッドの入力を統合して扱います。
+`input.config` ファイルが存在する場合はキーバインド設定を読み込み、存在しない場合は以下の既定値を使用してください。
+(ArrowKeys=DPad, Z=A, X=B, C=X, A=Y)
+
+**メソッド**:
+- `bool IsPressed(string buttonName)`
+  - 概要: 指定された仮想ボタンが現在押されているか判定します。
+  - buttonName: 仮想ボタン名（例: "Up", "A", "Jump"）。コンフィグでマッピングされたボタンが現在押されているかを返す。
+- `bool IsJustPressed(string buttonName)`
+  - 概要: 指定された仮想ボタンが「今のフレームで押された瞬間」か判定します。
+  - buttonName: 仮想ボタン名。
+- `bool IsJustReleased(string buttonName)`
+  - 概要: 指定された仮想ボタンが「今のフレームで離された瞬間」か判定します。
+  - buttonName: 仮想ボタン名。
+- `Vector2 GetVector()`
+  - 概要: 方向入力（左スティック、十字キー、矢印キー）を統合し、正規化されたベクトルを取得します。
+  - 戻り値: 正規化された(-1.0～1.0)ベクトル。
+- `Vector2 GetMousePosition()`
+  - 概要: 仮想解像度に対応したマウスカーソルの座標を取得します。
+  - 戻り値: 仮想解像度上の座標。
+- `void Vibrate(float seconds, float motorLeft, float motorRight)`
+  - 概要: ゲームパッドを振動させます。
+  - seconds: 振動させる時間 (秒)
+  - motorLeft: 左モーターの強さ (0.0f～1.0f)
+  - motorRight: 右モーターの強さ (0.0f～1.0f)
+
+---
+
+# 5. 2Dグラフィッククラス (class TonGraphics)
+仮想解像度(仮想画面)への描画機能を提供します。
+
+**列挙体定義**
+`enum AnimDirection { LeftToRight, TopToBottom }`
+
+**クラス定義**:
+- `class TonAnimState`: アニメーション制御用クラス
+  - `bool IsLoop`: ループするか否か
+  - `int FrameCount`: コマ数
+  - `int FrameDuration`: 1コマの表示時間(ms)
+  - `float Timer`: 経過時間(s)
+  - `int x1, y1`: 1コマ目の左上x,y座標
+  - `int width, height`: コマの幅と高さ
+  - `AnimDirection direction`: アニメーションの方向(LeftToRight:左から右、TopToBottom:上から下)
+  - 他、必要なメンバ
+
+- `class TonDrawParam`: 描画制御用クラス
+  - `float Alpha`: アルファ値(～1.0f)元画像のアルファ値に掛ける (既定値 1.0f)
+  - `Color Color`: 乗算カラー (既定値 Color.White)
+  - `bool FlipH`: 水平反転するか (既定値 false)
+  - `bool FlipV`: 垂直反転するか (既定値 false)
+  - コンストラクタ:
+    - `TonDrawParam()`: 全て既定値
+    - `TonDrawParam(Color color)`: 色指定付き
+
+- `class TonDrawParamEx`: 拡張描画制御用クラス
+  - `float ScaleX`: 横拡大率 (既定値 1.0f)
+  - `float ScaleY`: 縦拡大率 (既定値 1.0f)
+  - `float Angle`: 回転角度 (ラジアン, 時計回り, 既定値 0.0f)
+  - `float Alpha`: アルファ値(～1.0f)元画像のアルファ値に掛ける (既定値 1.0f)
+  - `Color Color`: 乗算カラー (既定値 Color.White)
+  - `bool FlipH`: 水平反転するか (既定値 false)
+  - `bool FlipV`: 垂直反転するか (既定値 false)
+  - `float MosaicSize`: モザイクエフェクトの粗さ (0.0fで無効, 値が大きいほど粗い。既定値 0.0f)
+  - コンストラクタ:
+    - `TonDrawParamEx()`: 全て既定値
+    - `TonDrawParamEx(float scale)`: 縦横一律拡大
+    - `TonDrawParamEx(float scale, float angle)`: 拡大と回転
+    - `TonDrawParamEx(float scale, float angle, Color color)`: 色指定付き
+
+- `class TonFilterParam`: 画面エフェクト制御用クラス
+  - `ScreenFilterType Type`: エフェクトの種類 (既定値 None)
+    - `float Amount`: 適用量・強度 (0.0f～1.0f。ScanLineやMosaicの場合は強度やピクセルサイズとして扱う) (既定値 0.0f)
+  - コンストラクタ:
+    - `TonFilterParam(ScreenFilterType type, float amount = 1.0f)`
+
+**リソース管理**:
+- `LoadTexture(string path, string name)`
+  - 概要: 画像をロードしキャッシュします。既にロード済みの場合はキャッシュを使用します。
+  - path:画像ファイルのパス
+  - name:割り当てる画像リソース名
+- **自動リリース**: 定期的に（例: 10秒毎）キャッシュをチェックし、一定時間参照されていないテクスチャを破棄する機構を実装すること。
+
+**ピクセルシェーダー管理**:
+.fx (シェーダー) についてはピクセルシェーダーのHLSLコードを作成してください。
+C#側の読み込み処理は、これらの .fx ファイルが MonoGame Content Pipeline (MGCB) を通じて
+コンパイル済みの .xnb ファイルになっている前提 で、`Content.Load<Effect>()` を用いて起動時に一括ロードするように実装してください。
+
+**メソッド**:
+- `void SetDrawTarget(string targetName = null)`
+  - 概要: 描画先のレンダーターゲットを変更します。nullの場合はデフォルトの仮想画面へ戻します。
+  - targetName: 描画先のレンダーターゲット名。nullの場合はデフォルトの仮想画面へ描画先を戻す。
+- `void CreateRenderTarget(string targetName, int width, int height)`
+  - 概要: 新しいレンダーターゲットを作成し、名前で管理します。
+  - targetName: 新規作成するレンダーターゲットの識別名
+  - width: ターゲットの幅 (px)
+  - height: ターゲットの高さ (px)
+- `void SetAntiAliasing(bool enabled)`
+  - enabled: 描画時のサンプリング（アンチエイリアス）の有効/無効設定。既定値は true。(但し、Draw()関数とDrawAnim()関数はアンチエイリアス無効とする)
+- `void Draw(string imageName, int toX, int toY, int fromX, int fromY, int w, int h, TonDrawParam param = default)`
+  - 概要: 画像を描画します（左上座標指定）。
+  - imageName: 画像リソース名
+  - toX, toY: 描画先の**左上**座標
+  - fromX, fromY: 描画元の**左上**座標
+  - w, h: 描画するサイズ
+  - param: 描画制御用クラス。`null` の場合は既定値を使用。
+- `void DrawEx(string imageName, float toX, float toY, int fromX, int fromY, int w, int h, TonDrawParamEx param)`
+  - 概要: 拡大・回転などの高度な描画を行います（中心座標指定）。
+  - imageName: 画像リソース名
+  - toX, toY: 描画する**中心**座標（回転・拡大縮小の軸となる）
+  - fromX, fromY: 描画元の**左上**座標
+  - w, h: 描画するサイズ
+  - param: 拡張描画制御用クラス
+- `void DrawAnim(string imageName, int x, int y, TonAnimState anim, TonDrawParam param= default)`
+  - 概要: アニメーション画像を描画します（左上座標指定）。
+  - imageName: 画像リソース名
+  - x, y: 描画する**左上**座標
+  - anim: アニメーション状態管理クラスのインスタンス
+  - param: 描画制御用クラス。`null` の場合は既定値を使用。
+- `void DrawAnimEx(string imageName, float x, float y, TonAnimState anim, TonDrawParamEx param)`
+  - 概要: アニメーション画像の高度な描画を行います（中心座標指定）。
+  - imageName: 画像リソース名
+  - x, y: 描画する**中心**座標（回転・拡大縮小の軸となる）
+  - anim: アニメーション状態管理クラスのインスタンス
+  - param: 拡張描画制御用クラス
+- `void DrawText(string text, int x, int y, Color color, float scale = 1.0f)`
+  - 概要: 文字列を描画します。
+  - text: 表示する文字列
+  - x, y: 文字列の**左上**座標
+  - color: 文字色
+  - scale: 文字の拡大率
+- `void FillRect(int x, int y, int w, int h, Color color)`
+  - 概要: 単色で塗りつぶされた矩形を描画します。
+  - x, y: 矩形の**左上**座標
+  - w, h: 矩形の幅、高さ
+  - color: 塗りつぶし色
+- `void FillRoundedRect(string imageName, int x, int y, int w, int h, int pw, int ph)`
+  - 概要: 9-Patch（9スライス）画像を利用して、角丸ウィンドウや枠を描画します。
+  - imageName: 画像リソース名 (9-Patchを格納した画像)
+  - x, y: 矩形の**左上**座標
+  - w, h: 幅と高さ
+  - pw, ph: 画像リソースのPatchの一辺のサイズ
+  - **実装要件**: 9-Patchを利用して角丸ウィンドウを作成する。(pw=10, ph=20なら、(0,0)-(10,20)が左上、(10,0)-(20,20)が上、、(20,0)-(30,20)が右上、(0,40)-(10,60)が左下、(10,40)-(20,60)が下、(20,40)-(30,60)が右下の画像となる)
+- `void ShakeScreen(float seconds, float ratioX, float ratioY)`
+  - 概要: 画面全体を揺らします（シェイクエフェクト）。
+  - seconds: 画面を揺らす時間 (秒)
+  - ratioX: 横方向の揺れ幅（画面幅に対する比率。例: 0.05なら5%）
+  - ratioY: 縦方向の揺れ幅（画面高さに対する比率）
+  - **対象**: 仮想画面全体に対して適用すること。
+- `void SetScreenFilter(string targetName, TonFilterParam param)`
+  - 概要: 指定したレンダーターゲットにポストエフェクト（シェーダー）を適用します。
+  - targetName: エフェクトを適用するレンダーターゲット名（nullならメイン仮想画面）
+  - param: エフェクトの種類と強度を指定するクラス。`null`のときは適用解除する。
+  - **実装要件**: 指定されたパラメータ(`Type`, `Amount`)に応じてシェーダーパラメータをセットし、適用するロジックを実装すること。また、これを実現するための HLSL ピクセルシェーダーコードも生成すること。
+
+---
+
+# 6. サウンドクラス (class TonSound)
+効果音とBGMを管理します。
+
+**リソース管理**:
+- `LoadSound(string path, string name)` / `LoadBGM(string path, string name)`
+  - 概要: 音声をロードしキャッシュします。既にロード済みの場合はキャッシュを使用する。
+  - path:音声ファイルのパス
+  - name:割り当てるサウンドリソース名
+- **自動リリース**: 画像同様、一定時間(10分)未使用のサウンドリソースを破棄する機構を実装すること。(経過時間チェックは1分おきに実施)
+
+**メソッド**:
+- `void PlayBGM(string bgmName, float volume = 1.0f, float fadeSeconds = 0.0f)`
+  - 概要: BGMを再生します（ループ再生）。
+  - bgmName: サウンドリソース名
+  - volume: 音量 (0.0f～1.0f)
+  - fadeSeconds: フェードインにかける時間 (秒)。0なら即時再生。
+- `void StopBGM(float fadeSeconds = 0.0f)`
+  - 概要: BGMを停止します
+  - fadeSeconds: フェードアウトにかける時間 (秒)。
+- `void PlaySE(string seName, float volume = 1.0f)`
+  - seName: サウンドリソース名
+  - volume: 音量 (0.0f～1.0f)
+- `void StopAll()`: 全ての音（BGM, SE）を停止する。
+  - 概要: 全ての音（BGM, SE）を停止します
+- `void SetMasterVolume(float volume)`
+  - 概要: 全体のマスターボリュームを設定します。
+  - volume: 全体の音量倍率 (0.0f～1.0f)
+
+---
+
+# 7. メッセージウィンドウヘルパー (class TonMessage)
+ADVゲーム（ギャルゲー）のようなメッセージウィンドウ機能を提供します。
+`ton.gra`を使用して描画を行います。(ton.graでは足りない関数があれば提案してください)
+
+**スクリプト仕様**:
+文字列内に以下のタグを含めることで制御を行うパーサーを実装してください。
+- `\n`: 改行
+- `[size:24]`: フォントサイズ変更 (pt)
+- `[color:Red]`: 文字色変更 (色名またはHex)
+- `[speed:50]`: 文字送り速度変更 (1文字あたりのms)
+- `[rotate:0.1]`: 文字回転 (rad)
+- `[reset]`: フォントサイズ、色、文字送り速度、文字回転のリセット
+- `[wait:1000]`: 指定時間待機 (ms)
+- `[icon:Heart]`: ビットマップ（アイコン）のインライン表示(例のHeartは画像リソース名。画像全体を表示する。アニメーションは非対応)
+- `[next]`: 入力待ち（ページ送り待機アイコンを表示し、入力待ちにする。スクリプトの最後は強制的に[next]扱いにする）
+- `[link:message]`: ウィンドウ外への連携。GetLink()で使用するためのリストにmessage部を追加する
+
+**機能要件**:
+- メッセージ表示中は、決定キーやクリックの入力を優先的に受け取り、入力があれば「全文一括表示（スキップ）」や「次のページへ送る」等の処理を行うこと。
+
+**メソッド**:
+- `void SetWindowRect(int x, int y, int width, int height)`
+  - 概要: メッセージが表示される矩形領域を設定します。
+  - x, y: ウィンドウ表示領域の左上座標
+  - width, height: 幅と高さ
+- `void Show(string scriptText)`
+  - 概要: スクリプト付きテキストをセットし、表示を開始します。
+  - scriptText: 表示するメッセージ本文（制御文字含む）
+- `void Close()`: ウィンドウを強制的に閉じる。
+  - 概要: ウィンドウを強制的に閉じます。
+- `bool IsBusy()`: メッセージの文字送り中、または表示待機中であれば true を返す。
+- 概要: メッセージ送り中、または入力待ち中かどうかを返します。
+- `void Next()`: プレイヤーが決定ボタンを押した時に呼び出し、次の文字送りやページ送りを行う。
+  - 概要: 次の文字送り、またはページ送りを行います（決定ボタン押下時に呼ぶ）。
+  - 文字送り中の場合:
+    - 挙動: 「全文一括表示（スキップ）」 します。
+    - 例: 「こんにち……」でボタン → 「こんにちは。」まで一瞬で表示完了させる。
+  - ページ送り待機中（[next] や [click]）の場合:
+    - 挙動: 「次のページ（または次の行）」 へ進みます。
+    - 例: アイコンが点滅している時にボタン → 次の文章を表示し始める。
+  - 表示が全て終わっている場合:
+    - 挙動: ウィンドウを閉じます（Close() を呼ぶのと同じ）。
+- `string GetLink()`:
+  - 概要: スクリプトのlinkタグのmessage部を取り出す。取り出されたmessageはリストから削除し、リストが空の場合はnullを返す。
+  - 例: ウィンドウ外のアニメーションを再生するなどの処理をするために使用する。
+
+---
+# 8. イベントキャラクター表示ヘルパー (class TonCharacter)
+会話シーンや背景で使用する「ちびキャラ（SDキャラ）」を管理します。
+簡易的な物理演算（速度・重力）を内蔵し、命令を与えるだけで自律的にアニメーションと移動を行うエージェントシステムです。
+`ton.gra`を使用して描画を行います。(ton.graでは足りない関数があれば提案してください)
+
+**内部動作要件**:
+- 各キャラは `Position` (Vector2), `Velocity` (Vector2) を持ち、Updateごとに単純なEuler積分で移動する。
+- **物理挙動**:
+  - `UseGravity`フラグがtrueの場合、常にY軸に重力を加算し続ける。
+  - `CheckGround`フラグがtrueの場合、`GroundY` (地面のY座標) より下には落ちず、着地時にY速度を0にする。
+  - **摩擦処理**: 接地時かつ強制移動(`MoveTo`)中でない場合（SetVelocityによる慣性移動中）、X方向の速度に `(1.0 - Friction)` を乗算して減速させる（吹っ飛ばされた後にズザーっと滑って止まる挙動を実現するため）。
+- **アニメーション自動切替**:
+  - 速度がほぼ0なら `Idle` アニメーション。
+  - 速度があり、かつ接地しているなら `Walk` アニメーション。
+  - 速度があり、かつ空中にいるなら `Jump` アニメーション。
+- **反転**: 右移動時は通常、左移動時は画像を反転(FlipH)して描画する。
+
+**列挙体定義**
+`enum CharacterAnimType { Idle, Walk, Jump, Action }`
+  - `Idle`: 待機状態用のアニメーション。
+  - `Walk`: 接地移動中用のアニメーション。
+  - `Jump`: 空中移動中用のアニメーション。
+  - `Action`: 任意のリアクション（`PlayAction`で使用）。
+
+**内部クラス定義 (開発者には公開しない)**
+- `class TonCharacterAgent`: キャラクター1体分のデータを保持
+  - 基本パラメータ: `Id`, `Position`, `Velocity`, `GroundY`
+  - フラグ: `UseGravity` (既定true), `CheckGround` (既定true)
+  - 内部状態: `CharacterState` (Idle, Move, RoundTrip 等の論理状態)
+  - `Dictionary<CharacterAnimType, TonAnimStateInfo>` Anims: アニメーションリソースの辞書
+
+**メソッド**:
+- `void Add(string id, int x, int y)`
+  - 概要: キャラクターをシーンに登録します。
+  - id: キャラ識別ID (例: "hero")
+  - x, y: 初期座標。このY座標を「地面の高さ(GroundY)」として記憶します。
+- `void Remove(string id)`
+  - 概要: キャラクターを退場させます。nullなら全削除。
+  - id: 対象のキャラ識別ID。
+- `void AddAnim(string id, CharacterAnimType type, string imageName, int w, int h, int duration, bool isLoop = true)`
+  - 概要: 指定したタイプ（Idle, Walk, Jump）に対するアニメーションを登録します。
+  - id: 対象のキャラ識別ID。
+  - type: アニメーションの種類（Enum指定）。
+  - imageName: 画像リソース名。
+  - w, h: 1コマの幅と高さ (px)。
+  - duration: 1コマの表示時間 (ms)。
+  - isLoop: アニメーションをループ再生するか。
+- `void SetPhysics(string id, bool useGravity, bool checkGround, float friction)`
+  - 概要: 物理挙動のパラメータを変更します。
+  - id: 対象のキャラ識別ID。
+  - useGravity: 重力の影響を受けるか（falseなら空を飛べる）。
+  - checkGround: 地面判定を行うか（falseなら床をすり抜ける）。
+  - friction: 地面での摩擦係数 (0.0～1.0)。値が大きいほど滑りにくくなる。
+- `void SetVelocity(string id, float vx, float vy)`
+  - 概要: キャラクターに強制的に速度を与えます（吹っ飛び、ジャンプなど）。
+  - id: 対象のキャラ識別ID。
+  - vx, vy: 与える初速ベクトル (px/frame)。
+- `void MoveTo(string id, int targetX, float speed)`
+  - 概要: 指定したX座標まで「歩いて」移動させます（物理演算ではなく等速移動）。
+  - id: 対象のキャラ識別ID。
+  - targetX: 目標のX座標。
+  - speed: 移動速度 (px/frame)。絶対値で指定（向きは自動判定）。
+- `void RoundTrip(string id, int distance, float speed)`
+  - 概要: 現在位置を基準に、指定距離の往復移動を開始させます。
+  - id: 対象のキャラ識別ID。
+  - distance: 往復する片道の距離 (px)。
+  - speed: 移動速度 (px/frame)。
+- `void PlayAction(string id, string imageName, int w, int h, int duration)`
+  - 概要: ワンショットのアクション（驚き、攻撃など）を再生します。再生後は元の状態に戻ります。
+  - id: 対象のキャラ識別ID。
+  - imageName: 画像リソース名。
+  - w, h: 1コマの幅と高さ。
+  - duration: 1コマの表示時間 (ms)。
+- `void Stop(string id)`
+  - 概要: 速度を0にし、強制的に`Idle`状態にします。
+  - id: 対象のキャラ識別ID。
+- `void Update()`
+  - 概要: 全登録キャラの物理演算とアニメーション更新を行います。
+- `void Draw()`
+  - 概要: 全登録キャラを描画します。
+
+---
+# 9. コンフィグヘルパー (class TonConfigMenu)
+ゲームの設定変更を行うための簡易UIシーンを実装します。
+
+**役割**:
+開発者が個別に実装するのが面倒な「コンフィグ画面」をライブラリ側で提供するものです。
+`ton.gra` と `ton.input` を使用して描画・操作を行います。
+
+**設定項目**:
+- 解像度変更
+- フルスクリーン ON/OFF
+- マスターボリューム設定
+- メッセージ表示速度
+
+**メソッド**:
+- `void Open()`
+  - 現在のシーンの上にオーバーレイ表示、もしくは一時的にコンフィグシーンへ遷移。
+- `void Close()`
+  - コンフィグ画面を閉じる。
+- `bool IsOpen()`
+  - 現在設定画面が開いているか（ゲームロジック停止判定用）。
+
+---
+
+# 10. シーン管理クラス (class TonScene)
+シーン遷移を自動フェード処理付きで管理します。
+
+**インターフェース `IScene`**:
+`Initialize()`, `Update()`, `Draw()`, `Terminate()` を定義してください。
+
+**メソッド**:
+- `void Change(IScene nextScene, float duration = 1.0f, Color fadeColor = default)`
+  - 概要: 指定したシーンへ、フェード効果を挟んで遷移します。
+  - nextScene: 次に遷移するシーンのインスタンス
+  - duration: シーン遷移（暗転）にかかる時間 (秒)
+  - fadeColor: フェードアウト時の色（省略時は黒）
+- `IScene GetCurrentScene()`: 現在アクティブなシーンを取得する。
+  - 概要: 現在アクティブなシーンを取得します。
+
+---
+
+# 11. ユーティリティ・数学クラス (class TonMath)
+静的メソッド、あるいはステートレスなヘルパーとして実装してください。
+
+**メソッド**:
+- `int Rand(int min, int max)`
+  - 概要: 整数の乱数を取得します (min以上 max未満)。
+  - min: 最小値 (含む)
+  - max: 最大値 (含まない)
+- `float RandF(float min, float max)`
+  - 概要: 浮動小数点の乱数を取得します。
+  - min: 最小値
+  - max: 最大値
+- `float GetAngle(float x1, float y1, float x2, float y2)`
+  - 概要: 2点間の角度（ラジアン）を計算します。
+  - x1, y1: 始点座標
+  - x2, y2: 終点座標
+  - 戻り値: ラジアン単位の角度
+- `float GetDistance(float x1, float y1, float x2, float y2)`
+  - 概要: 2点間の距離を計算します。
+  - x1, y1: 点1
+  - x2, y2: 点2
+  - 戻り値: 距離 (px)
+- `float Lerp(float current, float target, float amount)`
+  - 概要: 線形補間を行います。
+  - current: 現在の値
+  - target: 目標値
+  - amount: 補間係数 (0.0f～1.0f)
+- `bool HitCheckRect(Rectangle rect1, Rectangle rect2)`
+  - 概要: 矩形同士の衝突判定を行います。
+  - rect1, rect2: 判定する矩形。重なっていれば true。
+- `bool HitCheckCircle(Vector2 pos1, float r1, Vector2 pos2, float r2)`
+  - 概要: 円同士の衝突判定を行います。
+  - pos1: 円1の中心
+  - r1: 円1の半径
+  - pos2: 円2の中心
+  - r2: 円2の半径
+  - 戻り値: 重なっていれば true。
+- `bool IsPointInRect(float x, float y, Rectangle rect)`
+  - 概要: 点が矩形に含まれるか判定します。
+  - x, y: 点の座標
+  - rect: 判定する矩形
+
+---
+
+# 12. パーティクルシステム (class TonParticle)
+エフェクト（爆発、煙、キラキラなど）を効率的に描画・管理するシステムです。
+オブジェクトプーリングを使用し、GC（ガベージコレクション）の発生を抑えます。
+ton.graphicsを用いて実装します。
+
+**クラス定義**:
+- `class TonParticleParam`
+  - `string ImageName`: 使用する画像リソース名
+  - `int MinLife, MaxLife`: 表示時間(ms)のランダム範囲
+  - `float MinSpeed, MaxSpeed`: 速度のランダム範囲
+  - `float MinAngle, MaxAngle`: 移動方向(ラジアン)のランダム範囲
+  - `float MinScale, MaxScale`: 拡大率のランダム範囲
+  - `float Gravity`: 重力加速度
+  - `Color StartColor, EndColor`: 色の遷移（フェードアウト等に使用）
+  - `bool IsAdditive`: 加算合成するかどうか（光るエフェクト用）
+
+**メソッド**:
+- `void Register(string name, TonParticleParam param)`
+  - 概要: パーティクルの挙動プリセットを登録します。
+- `void Play(string name, float x, float y, int count = 1)`
+  - 概要: 指定したパーティクルを発生させます。
+  - name: 登録済みのパーティクル名
+  - x, y: 発生座標
+  - count: 一度に発生させる数（指定範囲内でランダムに拡散）
+- `void Clear()`
+  - 概要: 全てのパーティクルを消去します。
+- `void Update(GameTime gameTime)`
+- `void Draw()`
+
+---
+
+# 13. タイルマップ (class TonTileMap)
+グリッド状のマップを描画・管理します。
+複数のレイヤー（背景、地形、装飾など）をサポートします。
+ton.graphicsを用いて実装します。
+
+**メソッド**:
+- `void Create(int mapWidth, int mapHeight, int tileSizeW, int tileSizeH)`
+  - 概要: マップデータを初期化します。
+  - mapWidth, mapHeight: マップのグリッド数（横、縦）
+  - tileSizeW, tileSizeH: 1マスのピクセルサイズ
+  - **プロパティ `Scale`**: マップ全体の拡大率 (既定値 1.0f)。描画サイズおよび `GetTileAt` の判定に影響します。
+- `void SetImage(string imageName)`
+  - 概要: タイルセット（マップチップ）画像を設定します。
+  - 画像は左上から順にインデックス0, 1, 2...として扱われます。
+  - **インデックス仕様**: 画像幅 `W`、高さ `H`、タイルサイズ `tw, th` の場合、
+    - 横方向のタイル数 `Cols = floor(W / tw)`
+    - 縦方向のタイル数 `Rows = floor(H / th)`
+    - インデックス `i` のタイルは、`x = (i % Cols) * tw`, `y = (i / Cols) * th` の位置から取得します。
+    - 画像右端や下端の余り部分は無視されます。
+- `void LoadFromCsv(int layer, string path)`
+  - 概要: CSVファイル(カンマ区切りテキスト)からマップデータを読み込み、指定レイヤーに設定します。
+  - **Tiled Map Editor** などのツールからCSV形式でエクスポートされたファイルを想定しています。
+  - path: CSVファイルのパス
+- `void SetData(int layer, int[] data)`
+  - 概要: 指定レイヤーのマップデータを一括設定します。
+  - layer: レイヤー番号 (0=奥, 1=手前...)
+  - data: タイルインデックスの配列（長さは mapWidth * mapHeight）
+- `void SetTile(int layer, int cx, int cy, int tileIndex)`
+  - 概要: 指定座標のタイルを変更します。
+- `int GetTile(int layer, int cx, int cy)`
+  - 概要: 指定グリッドのタイルインデックスを取得します。
+- `int GetTileAt(int layer, float pixelX, float pixelY)`
+  - 概要: 指定ピクセル座標にあるタイルインデックスを取得します（当たり判定用）。
+- `void Draw(int layer)`
+  - 概要: 指定レイヤーを描画します。
+  - 画面内（カメラ範囲内）のタイルのみを描画するカリング処理を含むこと。
+
+---
+
+# 14. メニュー (class TonMenu)
+
+RPG風のメニュー（コマンドリスト、アイテム一覧、ステータス画面）の開発を簡略化します。
+これはシングルトンではなく、IDisposableなクラスとします。(複数のメニューを扱う場合に都合が良いので)
+
+**列挙体**
+
+ enum TonMenuOperation = {Up, Down, Left, Right, Ok, Cancel}
+
+**コンストラクタ**:
+
+- `void TonMenu(Rectangle rect, int column, int row, int width, int height, bool bAllowBlankSelect);`
+  - 概要: コンストラクタ。メニューの表示範囲を決定する。
+          例えば、「たたかう」「まほう」「アイテム」「にげる」と縦に表示する場合は、columnが1、rowが4になる。
+  - rect: メニューの表示範囲
+  - column: 一行に表示するアイテム数
+  - row: 一列に表示するアイテム数
+  - width: 各アイテムの幅(px)
+  - height: 各アイテムの高さ(px)
+  - bAllowBlankSelect: trueの場合、アイテムがない空欄にもカーソルを移動できる (既定値:false)
+  - bAllowMultiSelect: trueの場合、複数のアイテムを選択できる (既定値:false)
+
+**メソッド**:
+
+- `void InputOperation(TonMenuOperation ope);`
+  - 概要: TonMenuに対して操作を実施する。
+  - ope: 操作の内容。Up, Down, Left, Rightの場合はTonMenu側でカーソル移動の処理を行う。
+
+
+私のおすすめの構成
+基本は 「アクション（デリゲート） + 必要に応じてリフレッシュ」 の組み合わせが良いと思います。
+
+TonMenuItem の設計に、「決定時のアクション」 を持たせてしまうのが、使う側としては非常に楽です。
+// メニュー構築時
+var item = new TonMenuItem();
+item.Elements.Add(new TextElement("ポーション"));
+item.Elements.Add(new TextElement("x 10", id="count")); // IDをつけて後で触れるようにする、とか
+
+// アクションをラムダ式で登録 (ここがインターフェースの肝)
+item.OnDecided = (menuItem) => {
+    // 1. 外部ロジック実行
+    bool used = GameLogic.UseItem("Potion");
+    
+    // 2. 結果に応じたフィードバック (返り値で制御してもいいですが、コールバック内で完結させるのもあり)
+    if (used) {
+        // 残り個数を再取得して表示更新（部分更新したい場合）
+        int newCount = GameLogic.GetItemCount("Potion");
+        if (newCount > 0) {
+             // 要素をIDなどで探して書き換える、あるいは 案2の動的バインディングなら何もしなくていい
+             menuItem.GetElement<TextElement>("count").Text = "x " + newCount;
+        } else {
+             // 0個ならリストから消す、あるいはメニュー全体をリロード要請
+             menu.NeedsRefresh = true; 
+        }
+    } else {
+        Ton.Sound.Play("Error");
+    }
+};
+
+menu.Add(item);
+
+この方針（ロジックをActionとしてアイテムに持たせる、
+リスト構造の変更が必要な時だけ親にリフレッシュを要求する）で設計を進めるのが、
+開発効率とパフォーマンスのバランスが良いと思いますが、いかがでしょうか？
+
+---
+
+以上です。この仕様に基づき、MonoGameプロジェクトですぐに使用できるクラスコード一式を作成してください。
+不明な点があれば作成前に確認をすること。
+

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonStorage</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonStorage</h1>
+        <p>JSON形式によるセーブデータの保存・読み込み機能を提供します。データは <code>save/</code> フォルダに格納されます。</p>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">void Save&lt;T&gt;(string fileName, T data)</div>
+            <p>任意のオブジェクトをJSONファイルとして保存します。</p>
+            <ul>
+                <li><code>fileName</code>: ファイル名（拡張子含む）</li>
+                <li><code>data</code>: 保存するオブジェクト</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">T Load&lt;T&gt;(string fileName)</div>
+            <p>JSONファイルを読み込み、指定した型のオブジェクトとして復元します。</p>
+            <ul>
+                <li><code>fileName</code>: ファイル名</li>
+            </ul>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// A simple data class
+public class SaveData
+{
+    public int Level { get; set; }
+    public int Score { get; set; }
+}
+
+// Save Data
+var data = new SaveData { Level = 5, Score = 1000 };
+Ton.storage.Save("save1.json", data);
+
+// Load Data
+var loaded = Ton.storage.Load&lt;SaveData&gt;("save1.json");
+if (loaded != null)
+{
+    // Restore state
+    currentScore = loaded.Score;
+}</code></pre>
+    </div>
+</body>
+
+</html>

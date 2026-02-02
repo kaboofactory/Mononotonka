@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonGame</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonGame</h1>
+        <p>ウィンドウサイズ、仮想解像度、フルスクリーン切り替え、FPS計測などを管理します。</p>
+
+
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">int GetVirtualWidth()</div>
+            <p>仮想画面の幅を取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">int GetVirtualHeight()</div>
+            <p>仮想画面の高さを取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">int GetWindowWidth()</div>
+            <p>現在のウィンドウ幅を取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">int GetWindowHeight()</div>
+            <p>現在のウィンドウ高さを取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">TimeSpan GetTotalGameTime()</div>
+            <p>ゲーム開始からの総経過時間を取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool GetIsFullScreen()</div>
+            <p>現在のフルスクリーン状態を取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">float GetUpdateFPS()</div>
+            <p>現在のUpdate FPS（論理フレームレート）を取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">float GetDrawFPS()</div>
+            <p>現在のDraw FPS（描画フレームレート）を取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetWindowSize(int width, int height)</div>
+            <p>実際のウィンドウサイズを設定します。</p>
+            <ul>
+                <li><code>width</code>: 幅（ピクセル）</li>
+                <li><code>height</code>: 高さ（ピクセル）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetWindowTitle(string title)</div>
+            <p>ウィンドウのタイトルバーのテキストを設定します。</p>
+            <ul>
+                <li><code>title</code>: タイトル文字列</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetMouseVisible(bool visible)</div>
+            <p>マウスカーソルの表示・非表示を設定します。</p>
+            <ul>
+                <li><code>visible</code>: trueで表示、falseで非表示 (既定値 false)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetVirtualResolution(int width, int height)</div>
+            <p>ゲームロジックが使用する仮想解像度を設定します。描画時にウィンドウサイズに合わせて自動的にスケール（レターボックス付き）されます。</p>
+            <ul>
+                <li><code>width</code>: 仮想幅（ピクセル）</li>
+                <li><code>height</code>: 仮想高さ（ピクセル）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetResizable(bool enable)</div>
+            <p>ウィンドウのリサイズ（最大化ボタン含む）をユーザーに許可するかを設定します。<br>
+                有効にすると、ユーザーがウィンドウ枠をドラッグしてサイズ変更できるようになります。ゲーム画面はアスペクト比を維持して拡大縮小されます。</p>
+            <ul>
+                <li><code>enable</code>: trueで許可、falseで固定 (既定値 false)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void ToggleFullScreen(bool isFullscreen)</div>
+            <p>ウィンドウモードとフルスクリーンモードを切り替えます。</p>
+            <ul>
+                <li><code>isFullscreen</code>: trueでフルスクリーン、falseでウィンドウ</li>
+            </ul>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// Initialize window settings
+// Set actual window size to 1280x720
+Ton.game.SetWindowSize(1280, 720);
+
+// Set virtual resolution (game logic size) to 640x360
+Ton.game.SetVirtualResolution(640, 360);
+
+// Toggle Fullscreen on Start button
+if (Ton.input.IsJustPressed("Start"))
+{
+    Ton.game.ToggleFullScreen(!Ton.game.GetIsFullScreen());
+}
+
+// Log current FPS (Update/Draw)
+float updateFps = Ton.game.GetUpdateFPS();
+float drawFps = Ton.game.GetDrawFPS();
+Ton.log.Info($"FPS - Update: {updateFps}, Draw: {drawFps}");
+
+// Get mouse position converted to virtual coordinates
+Vector2 mouseWin = Mouse.GetState().Position.ToVector2();
+Vector2 mouseVirtual = Ton.game.ConvertWindowToVirtual(mouseWin);</code></pre>
+    </div>
+</body>
+
+</html>

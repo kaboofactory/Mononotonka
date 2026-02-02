@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonMenu</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark'
+        });
+    </script>
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonMenu</h1>
+        <p>RPGなどのゲームで見られる「ウィンドウシステム」「コマンドメニュー」を実装するためのクラスです。<br>
+            単純なテキスト選択肢から、アイテムリスト、設定画面のような複雑なUIまで幅広く対応します。<br>
+            かなり難しいですが、自作するより遥かに楽なので、サンプルを触って理解してみましょう。</p>
+
+        <div class="card">
+            <h3>アーキテクチャと概念</h3>
+            <p><code>TonMenu</code> システムは、主に <strong>「メニュー本体 (TonMenu)」</strong> と <strong>「管理クラス
+                    (TonMenuManager)」</strong> の2つで構成されています。</p>
+            <pre class="mermaid">
+flowchart TD
+    Game[ゲームシーン] -->|Update/Draw| Manager[TonMenuManager]
+    
+    subgraph StackStruct ["TonMenuManager (スタック構造)"]
+        Manager -->|管理| Stack
+        Stack -->|前面| MenuA["TonMenu (Active)"]
+        Stack -->|背面| MenuB["TonMenu (Inactive/Paused)"]
+    end
+    
+    MenuA -->|描画| ItemsA[アイテムとレイアウト]
+    MenuB -->|描画| ItemsB[アイテムとレイアウト]
+</pre>
+            <div class="image-container" style="text-align: center; margin: 20px 0;">
+                <img src="tonmenu_image.png" alt="TonMenuManagerとTonMenuの関係図"
+                    style="max-width: 100%; border: 1px solid #444; border-radius: 8px;">
+                <p style="margin-top: 10px; color: #aaa; font-size: 0.9em;">
+                    実際のゲーム画面におけるTonMenuManager、TonMenu、TonMenuItem、TonMenuElementの関係性</p>
+            </div>
+            <p>この図は、TonMenuシステムの全体像を表しています。<strong>なぜ「Manager」と「Menu」が分かれているのでしょうか？</strong><br>
+                それは、複数のメニュー（アイテム画面、装備画面など）が重なり合う状況を管理するためです。「Stack（スタック）」という構造を使うことで、新しいメニューを開いたときに古いメニューを「下」に保存し、閉じれば元に戻るという、RPGでよくある挙動を自動的に処理してくれます。Game
+                SceneはManagerだけに指示を出せばよく、個々のメニューの状態を細かく気にする必要がありません。</p>
+            <ul>
+                <li><strong>TonMenuManager</strong>: 入力を受け付け、現在アクティブなメニューに操作を伝えます。また、ウィンドウの重なり順（スタック）を管理します。</li>
+                <li><strong>TonMenu</strong>: 1つのメニューウィンドウを表します。アイテム（選択肢）のリストを持ち、カーソル移動やスクロール制御を行います。</li>
+            </ul>
+        </div>
+
+        <h2>Quick Start</h2>
+        <div class="card">
+            <h3>Step 1: マネージャーの初期化</h3>
+            <pre class="mermaid">
+classDiagram
+    class ゲームシーン {
+        TonMenuManager _menuManager
+    }
+    ゲームシーン --> TonMenuManager : 所有
+</pre>
+            <p>このクラス図は「所有（Ownership）」の関係を示しています。ゲームシーンが
+                <code>TonMenuManager</code>を持っている、つまり「マネージャーの生存期間はシーンと同じ」であることを意味します。シーンが始まるときにマネージャーを作り、シーンが終われば一緒に消える、という管理の責任範囲を表しています。
+            </p>
+            <pre><code>private TonMenuManager _menuManager;
+
+public void Initialize()
+{
+    // マネージャーの生成
+    _menuManager = new TonMenuManager();
+}</code></pre>
+        </div>
+
+        <div class="card">
+            <h3>Step 2: メニューの作成</h3>
+            <pre class="mermaid">
+graph LR
+    Create[new TonMenu] --> Config[設定]
+    Config --> |SetContentScale| Size[コンテンツ（画像・テキスト）サイズ調整]
+    Config --> |SetCursorIcon| Icon[カーソル画像]
+    Config --> |SetLoopable| Loop[カーソルループ設定]
+</pre>
+            <p>メニューを作る際の流れです。いきなり完成品を作るのではなく、まず「空のメニュー」を生成し、そこへ「コンテンツ(画像・テキスト)サイズ」「カーソル画像」「カーフルループ設定」といったオプションを後付けで設定していく様子を表しています。これにより、必要な機能だけを選んでカスタマイズできる柔軟な設計になっています。
+            </p>
+            <pre><code>// 位置(50,50), ウィンドウサイズ(240x150), 1列4行, 各アイテムサイズ(200x50), 空白選択不可
+var menu = new TonMenu(new Rectangle(50, 50, 240, 150), 1, 4, 200, 50, false);
+
+// 外観設定
+menu.SetContentScale(0.8f);           // コンテンツ(画像・テキスト)サイズ
+menu.SetCursorIcon("finger");         // カーソル画像
+menu.SetLoopable(true);               // カーソル上下ループ有効</code></pre>
+        </div>
+
+        <div class="card">
+            <h3>Step 3: アイテムの追加</h3>
+            <pre class="mermaid">
+sequenceDiagram
+    participant Code
+    participant Menu
+    participant Item
+    
+    Code->>Item: new TonMenuItem()
+    Code->>Item: SetLayout(Text/Icon...)
+    Code->>Item: OnDecided = () => { ... }
+    Code->>Menu: AddItem(Item)
+</pre>
+            <p>プログラムコードがどのようにアイテム（選択肢）を作ってメニューに渡すかを示しています。重要なのは、<strong>「決定時の動作（OnDecided）」をアイテム作成時に決めている</strong>点です。「このアイテムが選ばれたら何をするか」というロジックをアイテム自身に持たせることで、メニュー側は中身を気にせず「選ばれたら実行するだけ」というシンプルな構造を保てます。
+            </p>
+            <pre><code>// アイテム追加
+menu.AddItem(CreateTextItem("たたかう", () => {
+    Console.WriteLine("攻撃！");
+}));
+
+// テキストのみのアイテム作成ヘルパー
+private TonMenuItem CreateTextItem(string text, Action<TonMenuItem> action)
+{
+    // メニューアイテムを作成
+    var item = new TonMenuItem();
+    // 空のレイアウトパネルを作成してテキストを追加
+    var layout = new TonMenuPanel(TonMenuPanel.LayoutType.Free);
+    // レイアウトパネルにテキスト要素を追加
+    layout.AddChild(new TonMenuText(text));
+    // メニューアイテムにレイアウトを設定
+    item.SetLayout(layout);
+    // 決定時の動作を設定
+    item.OnDecided = action;
+
+    return item;
+}
+</code></pre>
+        </div>
+
+        <div class="card">
+            <h3>Step 4: メニューの表示 (Push)</h3>
+            <pre class="mermaid">
+graph TD
+    TonMenuManager -->|Push| Stack
+    Stack -->|Active!| New_TonMenu
+    Stack -->|Pause...| Old_TonMenu
+</pre>
+            <p>「Push（プッシュ）」という操作の概念図です。お皿を積み重ねるように、新しいメニュー（New TonMenu）を既存のメニュー（Old TonMenu）の上に載せます。<br>
+                これにより、下のメニューは削除されずに「一時停止（Paused）」状態で待機できます。キャンセルボタンで上のメニューをどかせば、下のメニューがそのままの状態で復帰する。これがスタック管理の利点です。</p>
+            <pre><code>// メニューを開く
+_menuManager.Push(menu);</code></pre>
+        </div>
+
+        <div class="card">
+            <h3>Step 5: ループ処理 (Update/Draw)</h3>
+            <pre class="mermaid">
+graph TD
+    GameUpdate[Game.Update] --> ManagerUpdate[Manager.Update]
+    ManagerUpdate -->|Input| ActiveMenu[ActiveMenu.Control]
+    
+    GameDraw[Game.Draw] --> ManagerDraw[Manager.Draw]
+    ManagerDraw -->|1. Callback| DrawWindow[ウィンドウ・スクロールカーソル描画]
+    ManagerDraw -->|2. Draw| DrawContents[TonMenuItem描画]
+</pre>
+            <p>ゲームループ（毎フレーム繰り返される処理）の中で、メニューがどう動くかを表しています。<br>
+                <strong>Update（更新）</strong>: 操作を受け付けるのは「一番上のアクティブなメニュー」だけです。下のメニューが勝手に動かないように制御されています。<br>
+                <strong>Draw（描画）</strong>:
+                逆に描画は、ウィンドウの背景を描いてから中身を描く、という順序で丁寧に行われます。これにより、ウィンドウ枠の上に文字が綺麗に乗ることになります。ユーザはウィンドウとスクロールカーソルの描画を自分で行う必要があります。これはある程度デザイン上の汎用性をもたせるためです。逆にTonMenuItem内に画像を配置した場合、標準機能ではこれをアニメーションさせたりすることはできません。カーソルもです。
+            </p>
+            <pre><code>public void Update(GameTime gameTime)
+{
+    // 入力制御などを一任
+    _menuManager.Update();
+}
+
+public void Draw()
+{
+    // メニュー描画
+    // 引数のコールバックで「メニューごとのウィンドウ背景」を描画します
+    _menuManager.Draw((menu) => 
+    {
+        if (menu.IsActive)
+            Ton.Gra.FillRoundedRect("window_bg_active", menu.WindowRect...);
+        else
+            Ton.Gra.FillRoundedRect("window_bg_inactive", menu.WindowRect...);
+    });
+}</code></pre>
+        </div>
+
+        <h2>Information</h2>
+        <div class="card">
+            <h3>ライフサイクルイベント</h3>
+            <p>状態変化のタイミングで様々なコールバックが発火します。</p>
+            <pre class="mermaid">
+stateDiagram-v2
+    [*] --> Inactive : 生成
+    Inactive --> Active : Push / Resume (OnEnter/OnResume)
+    Active --> Paused : Submenu Push (OnPause)
+    Paused --> Active : Submenu Pop (OnResume)
+    Active --> Inactive : Pop (OnExit)
+    
+    Active --> Active : カーソル移動 (OnSelectionChanged)
+    Active --> Active : 決定操作 (OnDecided)
+</pre>
+            <p>メニューが生まれてから消えるまでの「一生」の状態変化（ステートマシン）です。<br>
+                単に開閉するだけでなく、「サブメニューが開かれて裏に回ったとき（Paused）」や「再び表に出てきたとき（Active）」といった細かい状態があります。これらのタイミングでイベント（<code>OnPause</code>,
+                <code>OnResume</code>）が呼ばれるため、細やかな演出が可能になります。
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>イベント</th>
+                        <th>タイミング</th>
+                        <th>主な用途</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>OnEnter</code></td>
+                        <td>メニューが表示され、操作可能になった瞬間</td>
+                        <td>ヘルプ表示、開始SE</td>
+                    </tr>
+                    <tr>
+                        <td><code>OnExit</code></td>
+                        <td>メニューが閉じられる（Pop）瞬間</td>
+                        <td>後始末、終了SE</td>
+                    </tr>
+                    <tr>
+                        <td><code>OnPause</code></td>
+                        <td>サブメニューが開かれ、背後に回る時</td>
+                        <td>装飾の解除</td>
+                    </tr>
+                    <tr>
+                        <td><code>OnResume</code></td>
+                        <td>サブメニューが閉じられ、最前面に戻った時</td>
+                        <td>ヘルプ復帰</td>
+                    </tr>
+                    <tr>
+                        <td><code>OnPostDraw</code></td>
+                        <td>描画完了後</td>
+                        <td>スクロール矢印などのカスタム描画</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">public TonMenu(Rectangle rect, int column, int row, int width, int height, bool
+                bAllowBlankSelect, bool bAllowMultiSelect = false)</div>
+            <p>TonMenuのコンストラクタ。</p>
+            <ul>
+                <li><code>rect</code>: メニューの表示領域（X, Y, Width, Height）</li>
+                <li><code>column</code>: 列数（横のアイテム数。列数は固定）</li>
+                <li><code>row</code>: 行数（縦のアイテム数=表示行数）</li>
+                <li><code>width</code>: 1アイテムあたりの幅</li>
+                <li><code>height</code>: 1アイテムあたりの高さ</li>
+                <li><code>bAllowBlankSelect</code>: アイテムがない空白部分へのカーソル移動を許可するか</li>
+                <li><code>bAllowMultiSelect</code>: 複数選択を許可するか（現在は予約）</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">void SetFont(string fontId)</div>
+            <p>使用するフォントを設定します。</p>
+            <ul>
+                <li><code>fontId</code>: 使用するフォントのID</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">void SetTextColor(Color defaultColor, Color? disabledColor = null)</div>
+            <p>テキストの基本色を設定します。</p>
+            <ul>
+                <li><code>defaultColor</code>: 通常時の色</li>
+                <li><code>disabledColor</code>: 無効（Enabled=false）時の色</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">void SetCursorColor(Color selectedColor, Color? frameColor = null)</div>
+            <p>カーソルの背景色と枠色を設定します。</p>
+            <ul>
+                <li><code>selectedColor</code>: 選択時の背景色</li>
+                <li><code>frameColor</code>: 枠の色（省略時は白）</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">void SetCursorIcon(string iconName, Vector2? offset = null)</div>
+            <p>カーソル用の画像アイコンを設定します。</p>
+            <ul>
+                <li><code>iconName</code>: アイコン画像名（Ton.Gra.LoadTextureでロードしたもの）</li>
+                <li><code>offset</code>: 表示位置オフセット（省略時は(0,0)）</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">void SetContentScale(float scale)</div>
+            <p>内部のテキストやアイコンの描画倍率を設定します。</p>
+            <ul>
+                <li><code>scale</code>: 描画スケール（1.0が等倍）</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">void SetLoopable(bool isLoop)</div>
+            <p>カーソルが端でループするか設定します。</p>
+            <ul>
+                <li><code>isLoop</code>: カーソル移動をループさせるかどうか</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">void SetTextOffset(int offset)</div>
+            <p>パネルレイアウト内のテキスト描画オフセットを設定します。</p>
+            <ul>
+                <li><code>offset</code>: テキスト描画時のX座標オフセット（px）</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">void AddItem(TonMenuItem item)</div>
+            <p>メニューにアイテムを追加します。</p>
+            <ul>
+                <li><code>item</code>: 追加するメニュー項目</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">void Clear()</div>
+            <p>メニューの内容をクリアし、カーソル位置やスクロールをリセットします。</p>
+        </div>
+
+        <div class="card">
+            <div class="method-sig">TonMenuItem GetCurrentItem()</div>
+            <p>現在選択中のアイテムを取得します。空白選択時はnullを返すことがあります。</p>
+        </div>
+
+    </div>
+</body>
+
+</html>

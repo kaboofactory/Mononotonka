@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: Ton</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: Ton</h1>
+        <p>Mononotonkaの中核となるシングルトンクラスです。全てのサブシステムへのアクセスポイントを提供します。</p>
+
+        <h2>Properties</h2>
+        <div class="card">
+            <div class="method-sig">static Ton Instance</div>
+            <p>Tonクラスの唯一のインスタンスを取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">static TonGame Game</div>
+            <p>ウィンドウ・解像度管理クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.Game</code> / 実体: <code>Ton.Instance.game</code>)</p>
+            <div class="method-sig">static TonInput Input</div>
+            <p>入力管理クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.Input</code> / 実体: <code>Ton.Instance.input</code>)</p>
+            <div class="method-sig">static TonGraphics Gra</div>
+            <p>描画管理クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.Gra</code> / 実体: <code>Ton.Instance.gra</code>)</p>
+            <div class="method-sig">static TonSound Sound</div>
+            <p>音声管理クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.Sound</code> / 実体: <code>Ton.Instance.sound</code>)</p>
+            <div class="method-sig">static TonScene Scene</div>
+            <p>シーン管理クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.Scene</code> / 実体: <code>Ton.Instance.scene</code>)</p>
+            <div class="method-sig">static TonMessage Msg</div>
+            <p>メッセージウィンドウ管理クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.Msg</code> / 実体: <code>Ton.Instance.msg</code>)</p>
+            <div class="method-sig">static TonCharacter Character</div>
+            <p>キャラクター管理クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.Character</code> / 実体: <code>Ton.Instance.character</code>)</p>
+            <div class="method-sig">static TonLog Log</div>
+            <p>ログ管理クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.Log</code> / 実体: <code>Ton.Instance.log</code>)</p>
+            <div class="method-sig">static TonMath Math</div>
+            <p>数学ヘルパクラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.Math</code> / 実体: <code>Ton.Instance.math</code>)</p>
+            <div class="method-sig">static TonStorage Storage</div>
+            <p>セーブデータ管理クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.Storage</code> / 実体: <code>Ton.Instance.storage</code>)</p>
+            <div class="method-sig">static TonParticle Particle</div>
+            <p>パーティクル管理クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.Particle</code> / 実体: <code>Ton.Instance.particle</code>)</p>
+            <div class="method-sig">static TonGameData Data</div>
+            <p>ゲーム実行データ（HP, 所持金など）へのアクセス。<br>
+                (推奨短縮形: <code>Ton.Data</code> / 実体: <code>Ton.Instance.gamedata</code>)<br>
+                オートセーブ用データコンテナとして機能します。</p>
+            <div class="method-sig">static TonPrimitive Primitive</div>
+            <p>図形・エフェクト描画クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.Primitive</code> / 実体: <code>Ton.Instance.primitive</code>)</p>
+            <div class="method-sig">static TonMagicEffect Magic</div>
+            <p>魔法エフェクト管理クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.Magic</code> / 実体: <code>Ton.Instance.magic</code>)<br>
+                <em>※ TonParticleのサンプル実装です。</em>
+            </p>
+
+
+        </div>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">void Initialize(Game game, GraphicsDeviceManager graphics)</div>
+            <p>ライブラリを初期化します。Game1.Initialize内で呼び出してください。</p>
+            <ul>
+                <li><code>game</code>: MonoGameのGameインスタンス</li>
+                <li><code>graphics</code>: GraphicsDeviceManagerインスタンス</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Update(GameTime gameTime)</div>
+            <p>全てのサブシステムを更新します。Game1.Update内で呼び出してください。</p>
+            <ul>
+                <li><code>gameTime</code>: ゲーム時間情報</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Draw(GameTime gameTime)</div>
+            <p>全てのサブシステムの描画処理を実行します。Game1.Draw内で呼び出してください。</p>
+            <ul>
+                <li><code>gameTime</code>: ゲーム時間情報</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Terminate()</div>
+            <p>ライブラリ終了時の処理を行います。</p>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// In Game1.cs
+protected override void Initialize()
+{
+    // Initialize Mononotonka with Game and GraphicsDeviceManager
+    Ton.Initialize(this, _graphics);
+    base.Initialize();
+}
+
+protected override void Update(GameTime gameTime)
+{
+    // Update all subsystems
+    Ton.Update(gameTime);
+    base.Update(gameTime);
+}
+
+protected override void Draw(GameTime gameTime)
+{
+    GraphicsDevice.Clear(Color.Black);
+
+    // Draw all subsystems
+    Ton.Draw(gameTime);
+    
+    base.Draw(gameTime);
+}
+
+protected override void UnloadContent()
+{
+    Ton.Terminate();
+}</code></pre>
+    </div>
+</body>
+
+</html>

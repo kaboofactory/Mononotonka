@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonMagicEffect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonMagicEffect</h1>
+        <p>FF風の魔法エフェクトを簡単に発動できるクラスです。</p>
+
+        <div class="alert alert-info">
+            <strong>📝 Note:</strong> このクラスは <code>TonParticle</code> のサンプル実装です。
+            実際のゲームでの使用例として参考にしてください。
+        </div>
+
+        <h2>Enumerations</h2>
+        <div class="card">
+            <div class="method-sig">enum MagicLevel</div>
+            <p>魔法のレベルを表す列挙体です。</p>
+            <ul>
+                <li><code>Level1 = 1</code>: レベル1</li>
+                <li><code>Level2 = 2</code>: レベル2</li>
+                <li><code>Level3 = 3</code>: レベル3</li>
+                <li><code>Level4 = 4</code>: レベル4</li>
+            </ul>
+        </div>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">void Fire(float x, float y, int level = 1)</div>
+            <p>ファイア系魔法エフェクトを発動します。地面から炎が噴き上がり、爆発して残り火が散ります。</p>
+            <ul>
+                <li><code>x</code>, <code>y</code>: 発生座標</li>
+                <li><code>level</code>: 魔法レベル（1-4）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Ice(float x, float y, int level = 1)</div>
+            <p>ブリザド系魔法エフェクトを発動します。上から氷の破片が降り注ぎ、放射状に広がります。</p>
+            <ul>
+                <li><code>x</code>, <code>y</code>: 発生座標</li>
+                <li><code>level</code>: 魔法レベル（1-4）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Wind(float x, float y, int level = 1)</div>
+            <p>エアロ系魔法エフェクトを発動します。竜巻のように風が渦巻きます。</p>
+            <ul>
+                <li><code>x</code>, <code>y</code>: 発生座標</li>
+                <li><code>level</code>: 魔法レベル（1-4）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Earth(float x, float y, int level = 1)</div>
+            <p>クエイク系魔法エフェクトを発動します。岩の破片が飛び散り、土埃が舞います。</p>
+            <ul>
+                <li><code>x</code>, <code>y</code>: 発生座標</li>
+                <li><code>level</code>: 魔法レベル（1-4）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Heal(float x, float y, int level = 1)</div>
+            <p>ケアル系魔法エフェクトを発動します。きらめく光が上昇します。</p>
+            <ul>
+                <li><code>x</code>, <code>y</code>: 発生座標</li>
+                <li><code>level</code>: 魔法レベル（1-4）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Poison(float x, float y, int level = 1)</div>
+            <p>ポイズン系魔法エフェクトを発動します。毒が周囲をうようよぐるぐると回ります。</p>
+            <ul>
+                <li><code>x</code>, <code>y</code>: 発生座標</li>
+                <li><code>level</code>: 魔法レベル（1-4）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Light(float x, float y, int level = 1)</div>
+            <p>ホーリー系魔法エフェクトを発動します。噴水のように光が噴き上がり、落下します。</p>
+            <ul>
+                <li><code>x</code>, <code>y</code>: 発生座標</li>
+                <li><code>level</code>: 魔法レベル（1-4）</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Clear()</div>
+            <p>全てのアクティブエフェクトをクリアします。</p>
+        </div>
+
+        <h2>Properties</h2>
+        <div class="card">
+            <div class="method-sig">int ActiveCount</div>
+            <p>現在実行中のエフェクト数を取得します。</p>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// In Initialize()
+// パーティクル画像を読み込み
+Ton.Gra.LoadTexture("shader/image/fire_particle", "shader/image/fire_particle");
+Ton.Gra.LoadTexture("shader/image/ice_particle", "shader/image/ice_particle");
+// ... 他のパーティクル画像も同様に読み込み
+
+// In Update()
+// ボタンで魔法発動
+if (Ton.Input.IsJustPressed("B"))
+{
+    Ton.Magic.Fire(400, 300, 1);  // ファイア発動
+}
+if (Ton.Input.IsJustPressed("X"))
+{
+    Ton.Magic.Ice(400, 300, 2);   // ブリザラ発動
+}
+if (Ton.Input.IsJustPressed("Y"))
+{
+    Ton.Magic.Wind(400, 300, 3);  // エアロガ発動
+}
+
+// 列挙体でも指定可能
+Ton.Magic.Fire(400, 300, MagicLevel.Firaga);</code></pre>
+
+        <h2>Available Magic Types</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Method</th>
+                    <th>Level 1</th>
+                    <th>Level 2</th>
+                    <th>Level 3</th>
+                    <th>Level 4</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>炎</td>
+                    <td><code>Fire()</code></td>
+                    <td>Fire</td>
+                    <td>Fira</td>
+                    <td>Firaga</td>
+                    <td>Firaja</td>
+                </tr>
+                <tr>
+                    <td>氷</td>
+                    <td><code>Ice()</code></td>
+                    <td>Blizzard</td>
+                    <td>Blizzara</td>
+                    <td>Blizzaga</td>
+                    <td>Blizzaja</td>
+                </tr>
+                <tr>
+                    <td>風</td>
+                    <td><code>Wind()</code></td>
+                    <td>Aero</td>
+                    <td>Aerora</td>
+                    <td>Aeroga</td>
+                    <td>Aeroja</td>
+                </tr>
+                <tr>
+                    <td>土</td>
+                    <td><code>Earth()</code></td>
+                    <td>Quake</td>
+                    <td>Quakera</td>
+                    <td>Quakega</td>
+                    <td>Quakeja</td>
+                </tr>
+                <tr>
+                    <td>回復</td>
+                    <td><code>Heal()</code></td>
+                    <td>Cure</td>
+                    <td>Cura</td>
+                    <td>Curaga</td>
+                    <td>Curaja</td>
+                </tr>
+                <tr>
+                    <td>毒</td>
+                    <td><code>Poison()</code></td>
+                    <td>Poison</td>
+                    <td>Poisora</td>
+                    <td>Poisoga</td>
+                    <td>Poisoja</td>
+                </tr>
+                <tr>
+                    <td>光</td>
+                    <td><code>Light()</code></td>
+                    <td>Holy</td>
+                    <td>Holyra</td>
+                    <td>Holyga</td>
+                    <td>Holyja</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+
+</html>

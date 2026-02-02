@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getting Started - Mononotonka</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Getting Started</h1>
+        <p>Mononotonkaライブラリの導入と初期設定について解説します。</p>
+
+        <h2>1. Installation</h2>
+        <div class="card">
+            <h3>必要なツール</h3>
+            <p>
+                Visual Studioと、MonoGameテンプレートが必要です。ここでは割愛します。
+            </p>
+            <h3>ライブラリの配置</h3>
+            <p>Mononotonkaリポジトリから以下のフォルダをプロジェクトルートにコピーしてください:</p>
+            <ul>
+                <li><code>mononotonka</code> - ライブラリ本体（必須）</li>
+                <li><code>Content</code> - MonoGame共通リソース（必須）</li>
+                <li><code>font</code> - SpriteFontリソース（必須。フォントは同梱されていません！！）</li>
+                <li><code>shaders</code> - シェーダーファイル群（必須）</li>
+                <li><code>sample_assets</code> - サンプルアセット（必須）</li>
+            </ul>
+            <p>不要なサンプルシーンやアセットは適宜削除してください。</p>
+        </div>
+
+        <h2>2. Setup (Initialization)</h2>
+        <div class="card">
+            <h3>Game1.csの設定</h3>
+            <p>
+                <code>Initialize()</code> メソッド内で、ライブラリの初期化と基本的な設定を行います。<br>
+                以下は推奨される初期化コードの例です。
+            </p>
+            <pre><code>protected override void Initialize()
+{
+    // 1. Mononotonkaライブラリの初期化 (必須)
+    // GameインスタンスとGraphicsDeviceManagerを渡します
+    Ton.Instance.Initialize(this, _graphics);
+
+    // 2. ウィンドウタイトルの設定
+    Ton.Game.SetWindowTitle("Mononotonka Game Project");
+
+    // 3. 仮想解像度の設定 (実際のゲーム内の解像度)
+    Ton.Game.SetVirtualResolution(1280, 720);
+
+    // 4. ウィンドウサイズの設定 (実際の表示サイズ)
+    // ※ Configファイルがある場合、TonConfigMenuによって上書きされる可能性があります
+    Ton.Game.SetWindowSize(1280, 720);
+
+    // 5. その他の設定 (任意)
+    Ton.Gra.SetAntiAliasing(false); // ドット絵ゲームなどはfalse推奨
+    Ton.Game.SetResizable(true);    // ウィンドウサイズ変更の許可
+
+    // 6. 最初のシーンへ移動
+    // ここで最初のシーン(タイトル画面など)を指定します
+    Ton.Scene.Change(new Scene01());
+
+    base.Initialize();
+}</code></pre>
+        </div>
+
+        <div class="card">
+            <h3>Update / Draw の設定</h3>
+            <p>
+                <code>Update</code> および <code>Draw</code> メソッド内で、Tonシステムの更新・描画メソッドを呼びらす必要があります。
+            </p>
+            <pre><code>protected override void Update(GameTime gameTime)
+{
+    // この関数にゲームロジックは要りません。各シーンのUpdateメソッドにて処理を行ってください。
+
+    // ESCキーが押されたら、ゲームを終了します
+    if (Keyboard.GetState().IsKeyDown(Keys.Escape))
+    {
+        Exit();
+    }
+
+    // Mononotonkaシステムの更新
+    Ton.Instance.Update(gameTime);
+
+    base.Update(gameTime);
+}
+
+protected override void Draw(GameTime gameTime)
+{
+    // この関数にゲームロジックは要りません。各シーンのDrawメソッドにて処理を行ってください。
+
+    // Mononotonkaシステムの描画
+    Ton.Instance.Draw(gameTime);
+
+    // MonoGameの基本的な描画処理を実行します
+    base.Draw(gameTime);
+}</code></pre>
+        </div>
+    </div>
+</body>
+
+</html>

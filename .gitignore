@@ -1,0 +1,25 @@
+# ===== ビルド成果物 =====
+bin/
+obj/
+Content/bin/
+Content/obj/
+Content/sample_assets/
+
+# ===== IDE / エディタ =====
+.vs/
+.vscode/
+*.user
+*.suo
+
+# ===== フォントファイル（配布対象外） =====
+*.ttf
+*.otf
+
+# ===== ログ / 一時ファイル =====
+*.log
+build_output.txt
+
+# ===== OS固有 =====
+Thumbs.db
+.DS_Store
+Desktop.ini

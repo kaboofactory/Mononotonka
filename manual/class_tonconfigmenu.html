@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class: TonConfigMenu</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="page-content">
+        <h1>Class: TonConfigMenu</h1>
+        <p>簡易的な設定メニュー（フルスクリーン切替、音量、メッセージ速度）を表示・制御します。</p>
+
+        <h2>Methods</h2>
+        <div class="card">
+            <div class="method-sig">void Open()</div>
+            <p>メニューを開きます。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Close()</div>
+            <p>メニューを閉じます。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool IsOpen()</div>
+            <p>メニューが開いているかどうかを返します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Update()</div>
+            <p>メニューの入力を処理・更新します。Ton.Updateから自動的に呼び出されます。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Draw()</div>
+            <p>メニューを描画します。Ton.Drawから自動的に呼び出されます。</p>
+        </div>
+
+        <h2>Sample Code</h2>
+        <pre><code>// Open Config Menu (e.g. from Title Screen or Pause)
+Ton.configmenu.Open();
+
+// Checking state
+if (Ton.configmenu.IsOpen())
+{
+    // Pause Game Logic
+}
+
+// Close manually if needed
+Ton.configmenu.Close();
+
+// Update/Draw are called automatically by Ton system</code></pre>
+    </div>
+</body>
+
+</html>
