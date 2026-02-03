@@ -281,11 +281,13 @@ th {
     }
 
     .desktop-only {
-        display: none;
+        display: none !important;
     }
 
     .mobile-header {
         display: flex;
+        flex-shrink: 0;
+        /* Prevent header from shrinking */
     }
 
     .sidebar {
@@ -298,6 +300,8 @@ th {
         border-right: none;
         border-bottom: 1px solid var(--border);
         box-sizing: border-box;
+        flex-shrink: 0;
+        /* Prevent sidebar from shrinking */
     }
 
     .sidebar.active {
@@ -307,8 +311,11 @@ th {
 
     .content-frame {
         width: 100%;
-        height: 100%;
-        /* Fill remaining height */
+        flex-grow: 1;
+        /* Take remaining space */
+        height: 0;
+        /* Important for scrollable iframe in flex container */
+        min-height: 0;
     }
 
     /* Adjust navigation for better touch targets */
