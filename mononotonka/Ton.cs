@@ -114,6 +114,7 @@ namespace Mononotonka
             
             // 起動ログを出力
             log.Info("Mononotonka Initialized.");
+            TonSpec.LogSpecs();
             
             // ウィンドウを中央に配置
             this.game.CenterWindow();

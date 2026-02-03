@@ -41,21 +41,6 @@ namespace Mononotonka
                     Directory.CreateDirectory(logDir);
                 }
 
-                // 古いログを削除して整理（最新30件を保持）
-                var files = Directory.GetFiles(logDir, "ton.*.log")
-                                     .OrderByDescending(f => f)
-                                     .ToList();
-                
-                while (files.Count >= MaxLogFiles)
-                {
-                    try
-                    {
-                        File.Delete(files.Last());
-                        files.RemoveAt(files.Count - 1);
-                    }
-                    catch { break; }
-                }
-
                 // 新しいログファイル名（タイムスタンプ付き）
                 string filename = $"ton.{DateTime.Now:yyyyMMddHHmmss}.log";
                 _logFilePath = Path.Combine(logDir, filename);
@@ -63,6 +48,42 @@ namespace Mononotonka
                 // StreamWriterを開く (Appendモード, Encodingはデフォルト(UTF-8))
                 _writer = new StreamWriter(_logFilePath, true);
                 _writer.AutoFlush = false; // 手動でFlushする方針だが、必要ならtrueでも良い。今回は都度Flushする実装にする。
+
+                // 古いログを削除して整理（最新30件を保持）
+                var files = Directory.GetFiles(logDir, "ton.*.log")
+                                     .OrderByDescending(f => f)
+                                     .ToList();
+                
+                var deletedFiles = new System.Collections.Generic.List<string>();
+
+                // 開いたばかりのファイルを含めてMaxLogFilesを超える分を削除
+                while (files.Count > MaxLogFiles)
+                {
+                    try
+                    {
+                        string target = files.Last();
+                        // 念のため現在開いているファイルは削除しない
+                        if (Path.GetFullPath(target).Equals(Path.GetFullPath(_logFilePath), StringComparison.OrdinalIgnoreCase))
+                        {
+                            files.RemoveAt(files.Count - 1);
+                            continue;
+                        }
+
+                        File.Delete(target);
+                        deletedFiles.Add(Path.GetFileName(target));
+                        files.RemoveAt(files.Count - 1);
+                    }
+                    catch { break; }
+                }
+
+                if (deletedFiles.Count > 0)
+                {
+                    Info($"Log cleanup: Deleted {deletedFiles.Count} files ({string.Join(", ", deletedFiles)})");
+                }
+                else
+                {
+                    Info("Log cleanup check: No files deleted.");
+                }
             }
             catch (Exception ex)
             {
