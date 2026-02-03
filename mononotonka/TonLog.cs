@@ -12,6 +12,7 @@ namespace Mononotonka
     public class TonLog
     {
         private string _logFilePath;
+        private StreamWriter _writer;
         private const int MaxLogFiles = 30;
         private const string LogLevelInfo = "INFO";
         private const string LogLevelWarn = "WARN";
@@ -58,6 +59,10 @@ namespace Mononotonka
                 // 新しいログファイル名（タイムスタンプ付き）
                 string filename = $"ton.{DateTime.Now:yyyyMMddHHmmss}.log";
                 _logFilePath = Path.Combine(logDir, filename);
+
+                // StreamWriterを開く (Appendモード, Encodingはデフォルト(UTF-8))
+                _writer = new StreamWriter(_logFilePath, true);
+                _writer.AutoFlush = false; // 手動でFlushする方針だが、必要ならtrueでも良い。今回は都度Flushする実装にする。
             }
             catch (Exception ex)
             {
@@ -69,22 +74,51 @@ namespace Mononotonka
         {
             try
             {
+                if (_writer == null) return;
+
                 string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
                 string filename = Path.GetFileName(file);
-                string logLine = $"[{timestamp}] [{level}] {message} ({filename}:{line}){Environment.NewLine}";
+                string logLine = $"[{timestamp}] [{level}] {message} ({filename}:{line})";
+                
                 LastLog = $"[{level}] {message}"; // 画面表示用に短く保持
-                File.AppendAllText(_logFilePath, logLine);
+
+                lock (_writer)
+                {
+                    _writer.WriteLine(logLine);
+                    _writer.Flush(); // 書き込み毎にFlushしてファイルに反映させる
+                }
 
                 // WARNとERRORはVisual Studio等のデバッグ出力にも表示
                 if (level == LogLevelWarn || level == LogLevelError)
                 {
-                    System.Diagnostics.Debug.Write(logLine);
+                    System.Diagnostics.Debug.WriteLine(logLine);
                 }
             }
             catch (Exception)
             {
                 // ログ書き込みエラーは無視（再帰的なエラーを防ぐため）
             }
+        }
+
+        /// <summary>
+        /// ログファイルを閉じてリソースを解放します。
+        /// </summary>
+        public void Close()
+        {
+            try
+            {
+                if (_writer != null)
+                {
+                    lock (_writer)
+                    {
+                        _writer.Flush();
+                        _writer.Close();
+                        _writer.Dispose();
+                        _writer = null;
+                    }
+                }
+            }
+            catch { }
         }
 
         /// <summary>

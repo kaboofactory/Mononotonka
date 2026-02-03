@@ -189,6 +189,8 @@ namespace Mononotonka
             gra.Terminate(); // テクスチャの解放
             sound.Terminate(); // 音楽の停止・解放
             // その他、必要なクリーンアップ処理
+
+            log.Close(); // 最後にログファイルを閉じる
         }
     }
 }
