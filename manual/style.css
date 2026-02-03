@@ -241,3 +241,100 @@ th {
     background-color: rgba(220, 53, 69, 0.2);
     border-color: rgba(220, 53, 69, 0.3);
 }
+
+/* Mobile Header (Hidden by default) */
+.mobile-header {
+    display: none;
+    background-color: var(--sidebar-bg);
+    padding: 15px 20px;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+}
+
+.mobile-logo {
+    color: var(--highlight);
+    font-weight: 700;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.menu-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.desktop-only {
+    display: block;
+}
+
+/* Responsive Design for Mobile/Tablet */
+@media (max-width: 1024px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .desktop-only {
+        display: none;
+    }
+
+    .mobile-header {
+        display: flex;
+    }
+
+    .sidebar {
+        display: none;
+        /* Hidden by default */
+        width: 100%;
+        height: auto;
+        max-height: 40vh;
+        /* Limit height and allow scroll */
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        box-sizing: border-box;
+    }
+
+    .sidebar.active {
+        display: flex;
+        /* Show when active */
+    }
+
+    .content-frame {
+        width: 100%;
+        height: 100%;
+        /* Fill remaining height */
+    }
+
+    /* Adjust navigation for better touch targets */
+    .nav-links {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+        padding: 10px;
+        /* Add some padding around the grid */
+    }
+
+    .nav-links a {
+        padding: 6px 8px;
+        /* Slightly more padding for touch */
+        font-size: 0.85rem;
+        line-height: 1.2;
+        text-align: center;
+        /* Center text for better balance */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        /* Fill the grid cell */
+    }
+
+    .nav-links li {
+        margin-bottom: 0px;
+    }
+}

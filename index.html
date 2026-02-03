@@ -9,15 +9,29 @@
     <script>
         function loadPage(page) {
             document.getElementById('content-frame').src = page;
+            // Close menu on mobile after selection
+            if (window.innerWidth <= 1024) {
+                document.getElementById('sidebar').classList.remove('active');
+            }
+        }
+
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('active');
         }
     </script>
 </head>
 
 <body>
     <div class="container">
+        <!-- Mobile Header -->
+        <div class="mobile-header">
+            <div class="mobile-logo">Mononotonka</div>
+            <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+        </div>
+
         <!-- Sidebar -->
-        <div class="sidebar">
-            <h1 class="logo">Mononotonka</h1>
+        <div class="sidebar" id="sidebar">
+            <h1 class="logo desktop-only">Mononotonka</h1>
 
             <div class="nav-section">
                 <div class="nav-header">Main</div>
