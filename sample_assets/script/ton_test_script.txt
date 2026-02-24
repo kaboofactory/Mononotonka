@@ -29,6 +29,13 @@
 [speed:200]ま、[speed:10]まぁそう言うなよ！[reset]
 実装大変だったんだからな！あ、ここスキップ入力不可でーす！[input:enable][next]
 ;
+音のタグだって対応してるぞ！
+[bgm:tutorial,0.7]まずはBGM再生！[wait:900]
+[se:coin,0.9]SEを鳴らして…[wait:500]
+[bgm:tutorial2,0.6]BGMを切り替える！[wait:1200]
+[se:jump,0.8]ジャンプSEもOKだ。[wait:500]
+[bgmstop:1.2]最後はフェードでBGM停止！[next]
+;
 最後に、イベント機能のテストだ。
 [speed:500][event:event1][color:SkyBlue]上にイベント受信ってでてきたら成功だ。[reset]
 ユーザー定義のイベントはプログラム側でGetEvent()を呼べ！[next]

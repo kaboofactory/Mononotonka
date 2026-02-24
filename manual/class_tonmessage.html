@@ -94,6 +94,12 @@
                 <li><code>[font:fontId]</code>: 使用するフォントを変更します。登録済みのフォントIDを指定してください。</li>
                 <li><code>[reset]</code>: 文字スタイル（色、サイズ、回転、速度、フォント）を初期値に戻します。</li>
                 <li><code>[icon:imageName]</code>: 指定した画像アイコンを文中に表示します。文字間オフセット(KerningOffset)が適用されます。</li>
+                <li><code>[bgm:name]</code>: 指定したBGMを再生します。<code>[bgm:name,volume]</code> で音量(0.0〜1.0)を指定できます。(例:
+                    <code>[bgm:town,0.8]</code>)</li>
+                <li><code>[bgmstop]</code>: 再生中のBGMを停止します。<code>[bgmstop:seconds]</code> でフェード停止が可能です。(例:
+                    <code>[bgmstop:1.5]</code>)<br>別名として <code>[stopbgm]</code>, <code>[bgm_stop]</code> も利用できます。</li>
+                <li><code>[se:name]</code>: 指定したSEを再生します。<code>[se:name,volume]</code> で音量(0.0〜1.0)を指定できます。(例:
+                    <code>[se:click,0.7]</code>)</li>
                 <li><code>[event:ID]</code>: イベントIDを発行します（GetEventで取得可能）。</li>
                 <li><code>[input:mode]</code>: ユーザー入力によるスキップ/ページ送りの有効無効を切り替えます。
                     <code>[input:disable]</code>で無効化し、<code>[input:enable]</code>で再度有効化します。強制イベントシーンなどで使用します。

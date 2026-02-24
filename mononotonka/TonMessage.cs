@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.Globalization;
 using Microsoft.Xna.Framework;
 
 namespace Mononotonka
@@ -12,7 +13,7 @@ namespace Mononotonka
     public class TonMessage
     {
         // 内部クラス：コマンド定義
-        private enum CmdType { Text, NewLine, SetSize, SetColor, SetSpeed, SetRotate, SetFont, SetShake, Reset, Wait, Icon, Next, Event, End, Input }
+        private enum CmdType { Text, NewLine, SetSize, SetColor, SetSpeed, SetRotate, SetFont, SetShake, Reset, Wait, Icon, Next, Event, End, Input, PlayBgm, StopBgm, PlaySe, ScreenShake }
         private class MessageCommand
         {
             public CmdType Type;
@@ -612,6 +613,22 @@ namespace Mononotonka
                 case CmdType.Input:
                     _isInputEnabled = (cmd.IntValue != 0);
                     break;
+
+                case CmdType.PlayBgm:
+                    Ton.Sound.PlayBGM(cmd.StringValue, 0.0f, cmd.FloatValue);
+                    break;
+
+                case CmdType.StopBgm:
+                    Ton.Sound.StopBGM(Math.Max(0.0f, cmd.FloatValue));
+                    break;
+
+                case CmdType.PlaySe:
+                    Ton.Sound.PlaySE(cmd.StringValue, cmd.FloatValue);
+                    break;
+
+                case CmdType.ScreenShake:
+                    Ton.Gra.ShakeScreen(cmd.FloatValue, cmd.ShakeX, cmd.ShakeY, cmd.ShakeSpeed);
+                    break;
             }
         }
 
@@ -801,10 +818,19 @@ namespace Mononotonka
                 case CmdType.SetShake:
                 case CmdType.Event:
                 case CmdType.End:
+                case CmdType.PlayBgm:
+                case CmdType.StopBgm:
+                case CmdType.PlaySe:
+                case CmdType.ScreenShake:
                     return false;
                 default:
                     return false;
             }
+        }
+
+        private bool TryParseFloatInvariant(string value, out float parsed)
+        {
+            return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed);
         }
 
         private void ParseTag(string tag)
@@ -888,6 +914,113 @@ namespace Mononotonka
                     break;
                 case "end":
                     _commands.Add(new MessageCommand { Type = CmdType.End });
+                    break;
+                case "bgm":
+                    {
+                        // bgm:name or bgm:name,volume
+                        string[] vals = val.Split(',');
+                        string bgmName = (vals.Length > 0) ? vals[0].Trim() : "";
+                        float volume = 1.0f;
+                        if (vals.Length > 1)
+                        {
+                            if (!TryParseFloatInvariant(vals[1].Trim(), out volume))
+                            {
+                                volume = 1.0f;
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(bgmName))
+                        {
+                            _commands.Add(new MessageCommand { Type = CmdType.PlayBgm, StringValue = bgmName, FloatValue = MathHelper.Clamp(volume, 0.0f, 1.0f) });
+                        }
+                    }
+                    break;
+                case "bgmstop":
+                case "stopbgm":
+                case "bgm_stop":
+                    {
+                        // bgmstop or bgmstop:fadeSeconds
+                        float fadeSeconds = 0.0f;
+                        if (!string.IsNullOrEmpty(val) && !TryParseFloatInvariant(val, out fadeSeconds))
+                        {
+                            fadeSeconds = 0.0f;
+                        }
+
+                        _commands.Add(new MessageCommand
+                        {
+                            Type = CmdType.StopBgm,
+                            FloatValue = Math.Max(0.0f, fadeSeconds)
+                        });
+                    }
+                    break;
+                case "se":
+                    {
+                        // se:name or se:name,volume
+                        string[] vals = val.Split(',');
+                        string seName = (vals.Length > 0) ? vals[0].Trim() : "";
+                        float volume = 1.0f;
+                        if (vals.Length > 1)
+                        {
+                            if (!TryParseFloatInvariant(vals[1].Trim(), out volume))
+                            {
+                                volume = 1.0f;
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(seName))
+                        {
+                            _commands.Add(new MessageCommand { Type = CmdType.PlaySe, StringValue = seName, FloatValue = MathHelper.Clamp(volume, 0.0f, 1.0f) });
+                        }
+                    }
+                    break;
+                case "shakescreen":
+                case "screen_shake":
+                case "screenshake":
+                    {
+                        // screenshake:seconds,ratioX,ratioY,frequency
+                        // ratio/frequencyは省略可
+                        float seconds = 0.2f;
+                        float ratioX = 0.01f;
+                        float ratioY = 0.01f;
+                        float frequency = 20.0f;
+
+                        if (!string.IsNullOrEmpty(val))
+                        {
+                            string[] vals = val.Split(',');
+                            if (vals.Length > 0)
+                            {
+                                float parsed;
+                                if (TryParseFloatInvariant(vals[0].Trim(), out parsed)) seconds = parsed;
+                            }
+                            if (vals.Length > 1)
+                            {
+                                float parsed;
+                                if (TryParseFloatInvariant(vals[1].Trim(), out parsed)) ratioX = parsed;
+                            }
+                            if (vals.Length > 2)
+                            {
+                                float parsed;
+                                if (TryParseFloatInvariant(vals[2].Trim(), out parsed)) ratioY = parsed;
+                            }
+                            if (vals.Length > 3)
+                            {
+                                float parsed;
+                                if (TryParseFloatInvariant(vals[3].Trim(), out parsed)) frequency = parsed;
+                            }
+                        }
+
+                        if (seconds > 0)
+                        {
+                            _commands.Add(new MessageCommand
+                            {
+                                Type = CmdType.ScreenShake,
+                                FloatValue = seconds,
+                                ShakeX = MathHelper.Clamp(ratioX, 0.0f, 1.0f),
+                                ShakeY = MathHelper.Clamp(ratioY, 0.0f, 1.0f),
+                                ShakeSpeed = Math.Max(0.0f, frequency)
+                            });
+                        }
+                    }
                     break;
             }
         }
