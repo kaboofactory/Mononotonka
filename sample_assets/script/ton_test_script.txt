@@ -29,6 +29,10 @@
 [speed:200]ま、[speed:10]まぁそう言うなよ！[reset]
 実装大変だったんだからな！あ、ここスキップ入力不可でーす！[input:enable][next]
 ;
+おぬしの次のレベルアップに
+必要な経験値は[color:Red][var:exp][reset]じゃ。
+値の埋め込みも出来るんじゃぞ。[next]
+;
 音のタグだって対応してるぞ！
 [bgm:tutorial,0.7]まずはBGM再生！[wait:900]
 [se:coin,0.9]SEを鳴らして…[wait:500]

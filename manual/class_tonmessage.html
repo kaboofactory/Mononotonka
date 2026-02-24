@@ -71,6 +71,10 @@
             </ul>
         </div>
         <div class="card">
+            <div class="method-sig">void SetVariable(string key, string value)</div>
+            <p><code>[var:key]</code> タグで使用する文字列変数を設定します。<code>Show</code> または <code>LoadScript</code> を呼ぶ前に設定してください。</p>
+        </div>
+        <div class="card">
             <div class="method-sig">string GetEvent()</div>
             <p><code>[event:xxx]</code>タグでキューイングされたイベントIDを取得します。</p>
         </div>
@@ -101,6 +105,8 @@
                 <li><code>[se:name]</code>: 指定したSEを再生します。<code>[se:name,volume]</code> で音量(0.0〜1.0)を指定できます。(例:
                     <code>[se:click,0.7]</code>)</li>
                 <li><code>[event:ID]</code>: イベントIDを発行します（GetEventで取得可能）。</li>
+                <li><code>[blankline]</code>: 空行を1つ挿入します。表示上の空行が必要な場合に使用します。</li>
+                <li><code>[var:key]</code>: <code>SetVariable(key, value)</code> で登録した文字列を展開します。未登録キーは <code>null</code> に置き換わります。</li>
                 <li><code>[input:mode]</code>: ユーザー入力によるスキップ/ページ送りの有効無効を切り替えます。
                     <code>[input:disable]</code>で無効化し、<code>[input:enable]</code>で再度有効化します。強制イベントシーンなどで使用します。
                 </li>
@@ -111,10 +117,12 @@
         <pre><code>// In Initialize()
 // Set position and size
 Ton.Msg.SetWindowRect(20, 400, 600, 150);
+Ton.Msg.SetVariable("Exp", "1200");
 
 // Show Message Script
 string script = 
     "Hello.[wait:500] This is [color:Red]Red Text[reset].\n" +
+    "Need EXP: [var:Exp]\n" +
     "Welcome to [icon:icon_star] Mononotonka.[next]" +
     "Select an option:\n" +
     "[event:opt1] Option 1 (Yes)\n" +
@@ -143,10 +151,27 @@ if (Ton.Msg.IsBusy())
         <h2>Script Format</h2>
         <p>スクリプトファイル内では、行頭に <code>#</code> を付けることで複数のスクリプトを記述できます。</p>
         <p>また、行頭に <code>;</code> を付けるとコメント行となり、表示されません。</p>
+        <h3>ラベルの使い方</h3>
+        <ul>
+            <li>ラベルは <code>#ラベル名</code> の形式で行頭に記述します。</li>
+            <li><code>LoadScript(filePath, scriptName)</code> の <code>scriptName</code> には、先頭の <code>#</code> を除いたラベル名を指定します。</li>
+            <li>再生対象は「指定ラベル行の次行」から「次のラベル行の直前」までです。</li>
+            <li>ラベルが見つからない場合はエラーメッセージを表示します。</li>
+        </ul>
+        <h3>改行と空行の扱い</h3>
+        <ul>
+            <li>改行コードは通常テキスト行の改行として扱われます。</li>
+            <li>空行（改行コードのみの行）は表示上の空行としては扱われず、無視されます。</li>
+            <li>表示上の空行を入れたい場合は <code>[blankline]</code> を使用します。</li>
+            <li><code>;</code> で始まる行はコメント行として完全に無視されます（表示にも改行カウントにも入りません）。</li>
+        </ul>
         <pre><code>#Opening
 ; これはコメントです
 [icon:Hero] こんにちは！
-これはオープニングです。[next]
+これはオープニングです。
+[blankline]
+[blankline]
+[next]
 
 #Ending
 [icon:Hero] ありがとう！
@@ -154,15 +179,16 @@ if (Ton.Msg.IsBusy())
 
         <h2>Sample Code</h2>
         <pre><code>// Initialize
-Ton.msg.Initialize();
+Ton.Msg.Initialize();
+Ton.Msg.SetVariable("Exp", "1200");
 
 // Load script from file (Play "Opening" section)
-Ton.msg.LoadScript("script/scenario.txt", "Opening");
+Ton.Msg.LoadScript("script/scenario.txt", "Opening");
 
 // Manual Control
-if (Ton.input.IsJustPressed("A"))
+if (Ton.Input.IsJustPressed("A"))
 {
-    Ton.msg.Next();
+    Ton.Msg.Next();
 }</code></pre>
     </div>
 </body>

@@ -89,6 +89,22 @@ namespace Mononotonka
             _inputWaitingIconId = imageId;
         }
 
+        /// <summary>
+        /// [var:Key] タグで使用する変数を設定します。
+        /// Show/LoadScript を呼ぶ前に設定してください。
+        /// </summary>
+        /// <param name="key">変数キー</param>
+        /// <param name="value">表示する文字列</param>
+        public void SetVariable(string key, string value)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                return;
+            }
+
+            _variables[key.Trim()] = value ?? string.Empty;
+        }
+
         // メッセージキュー
         private List<string> _drawQueue = new List<string>();
         
@@ -125,6 +141,7 @@ namespace Mononotonka
         
         // イベント通知用(旧リンク)
         private Queue<string> _eventQueue = new Queue<string>();
+        private Dictionary<string, string> _variables = new Dictionary<string, string>();
 
         // 入力待ちアイコンID
         private string _inputWaitingIconId = null;
@@ -756,15 +773,63 @@ namespace Mononotonka
         private void ParseScript()
         {
             _commands = new List<MessageCommand>();
-            
-            // コメント行の削除 (;で始まる行)
-            // 正規表現: 行頭の空白+セミコロン+改行まで
-            _rawScript = Regex.Replace(_rawScript, @"^\s*;.*(\r\n|\r|\n)?", "", RegexOptions.Multiline);
 
+            string normalized = (_rawScript ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
+            string[] rawLines = normalized.Split('\n');
+            var scriptLines = new List<string>();
+
+            foreach (string rawLine in rawLines)
+            {
+                string line = rawLine ?? string.Empty;
+                string trimmed = line.Trim();
+
+                // コメント行（行頭';'）は完全無視
+                if (trimmed.StartsWith(";"))
+                {
+                    continue;
+                }
+
+                // 空行（改行コードのみの行）は表示に使わない
+                if (string.IsNullOrEmpty(trimmed))
+                {
+                    continue;
+                }
+
+                scriptLines.Add(line);
+            }
+
+            for (int i = 0; i < scriptLines.Count; i++)
+            {
+                string line = scriptLines[i];
+                bool isLineStart = true;
+                ParseScriptLine(line, ref isLineStart);
+
+                // [blankline] 単独行はタグ自身が改行を制御するため、行末改行を重複させない
+                bool isStandaloneBlankline = string.Equals(line.Trim(), "[blankline]", StringComparison.OrdinalIgnoreCase);
+                if (!isStandaloneBlankline && i < scriptLines.Count - 1)
+                {
+                    _commands.Add(new MessageCommand { Type = CmdType.NewLine });
+                }
+            }
+            
+            // 明示終端が無い場合は [end] 相当を自動追加する
+            // 末尾が [next] または [end] の場合は重複追加しない
+            if (_commands.Count > 0)
+            {
+                CmdType lastType = _commands[_commands.Count - 1].Type;
+                if (lastType != CmdType.Next && lastType != CmdType.End)
+                {
+                    _commands.Add(new MessageCommand { Type = CmdType.End });
+                }
+            }
+        }
+
+        private void ParseScriptLine(string line, ref bool isLineStart)
+        {
             // 正規表現でタグを分離: \[ ( [^\]]+ ) \]
             // "Hello[wait:10]World" -> "Hello", "[wait:10]", "World"
             string pattern = @"(\[.*?\])";
-            string[] parts = Regex.Split(_rawScript, pattern);
+            string[] parts = Regex.Split(line, pattern);
 
             foreach (var part in parts)
             {
@@ -772,35 +837,22 @@ namespace Mononotonka
 
                 if (part.StartsWith("[") && part.EndsWith("]"))
                 {
-                    // タグ解析
                     string content = part.Substring(1, part.Length - 2);
-                    ParseTag(content);
+                    ParseTag(content, ref isLineStart);
                 }
                 else
                 {
-                    // 通常テキスト（1文字ずつ分解）
                     foreach (char c in part)
                     {
-                        if (c == '\n')
+                        if (c == '\n' || c == '\r')
                         {
-                            _commands.Add(new MessageCommand { Type = CmdType.NewLine });
+                            continue;
                         }
-                        else if (c == '\r')
-                        {
-                            // \r は無視
-                        }
-                        else
-                        {
-                            _commands.Add(new MessageCommand { Type = CmdType.Text, StringValue = c.ToString() });
-                        }
+
+                        _commands.Add(new MessageCommand { Type = CmdType.Text, StringValue = c.ToString() });
+                        isLineStart = false;
                     }
                 }
-            }
-            
-            // 最後がNextでなければ強制的に追加（スクリプト終了時に閉じる挙動のため、あるいは入力待ちにするため）
-            if (_commands.Count > 0 && _commands[_commands.Count-1].Type != CmdType.Next)
-            {
-                 _commands.Add(new MessageCommand { Type = CmdType.Next });
             }
         }
 
@@ -833,7 +885,7 @@ namespace Mononotonka
             return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed);
         }
 
-        private void ParseTag(string tag)
+        private void ParseTag(string tag, ref bool isLineStart)
         {
             // 例: "size:24", "wait:100", "n"
             string[] col = tag.Split(':');
@@ -900,6 +952,20 @@ namespace Mononotonka
                     break;
                 case "icon":
                     _commands.Add(new MessageCommand { Type = CmdType.Icon, StringValue = val });
+                    isLineStart = false;
+                    break;
+                case "blankline":
+                    if (isLineStart)
+                    {
+                        _commands.Add(new MessageCommand { Type = CmdType.NewLine });
+                    }
+                    else
+                    {
+                        // 行中に埋め込まれた場合は改行 + 空行1行を挿入する
+                        _commands.Add(new MessageCommand { Type = CmdType.NewLine });
+                        _commands.Add(new MessageCommand { Type = CmdType.NewLine });
+                    }
+                    isLineStart = true;
                     break;
                 case "next":
                     int nextWait = 0;
@@ -911,6 +977,33 @@ namespace Mononotonka
                     break;
                 case "font":
                     _commands.Add(new MessageCommand { Type = CmdType.SetFont, StringValue = val });
+                    break;
+                case "var":
+                    {
+                        string variableText = "null";
+                        if (!string.IsNullOrWhiteSpace(val) && _variables.TryGetValue(val, out string mappedValue))
+                        {
+                            variableText = mappedValue ?? string.Empty;
+                        }
+
+                        foreach (char ch in variableText)
+                        {
+                            if (ch == '\n')
+                            {
+                                _commands.Add(new MessageCommand { Type = CmdType.NewLine });
+                                isLineStart = true;
+                            }
+                            else if (ch == '\r')
+                            {
+                                // \r は無視
+                            }
+                            else
+                            {
+                                _commands.Add(new MessageCommand { Type = CmdType.Text, StringValue = ch.ToString() });
+                                isLineStart = false;
+                            }
+                        }
+                    }
                     break;
                 case "end":
                     _commands.Add(new MessageCommand { Type = CmdType.End });

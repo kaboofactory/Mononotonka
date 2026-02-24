@@ -26,11 +26,26 @@ namespace Mononotonka
             // ウィンドウ位置を明示的に設定 (画面下部)
             Ton.Msg.SetWindowRect(40, Ton.Game.VirtualHeight - 300, Ton.Game.VirtualWidth - 80, 260);
 
+            // BGMロード
+            Ton.Sound.LoadBGM("sample_assets/sound/bgm/tutorial", "tutorial");
+            Ton.Sound.LoadBGM("sample_assets/sound/bgm/tutorial2", "tutorial2");
+            Ton.Sound.LoadBGM("sample_assets/sound/bgm/tutorial3", "tutorial3");
+            Ton.Sound.LoadBGM("sample_assets/sound/bgm/tutorial4", "tutorial4");
+
+            // SEロード
+            Ton.Sound.LoadSound("sample_assets/sound/se/coin", "coin");
+            Ton.Sound.LoadSound("sample_assets/sound/se/jump", "jump");
+            Ton.Sound.LoadSound("sample_assets/sound/se/lose", "lose");
+            Ton.Sound.LoadSound("sample_assets/sound/se/zap", "zap");
+
             // メッセージウィンドウのフォントサイズを設定
             Ton.Msg.SetTextStyle(0.7f);
 
             // 入力待ちアイコンの設定テスト
             Ton.Msg.SetInputWaitingIcon("heart");
+
+            // 変数の設定
+            Ton.Msg.SetVariable("exp", "65535");
 
             // スクリプト読み込み (ラベル指定)
             Ton.Msg.LoadScript("sample_assets/script/ton_test_script.txt", "TEST_PATTERN_1");

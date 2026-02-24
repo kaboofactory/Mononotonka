@@ -158,6 +158,70 @@ namespace Mononotonka
         }
 
         /// <summary>
+        /// 現在再生対象BGMのリソース取得を試みます。
+        /// </summary>
+        private bool TryGetCurrentBgmResource(out ResourceInfo<Song> resource)
+        {
+            resource = null;
+            if (string.IsNullOrEmpty(_currentBgmName))
+            {
+                return false;
+            }
+
+            return _bgmResources.TryGetValue(_currentBgmName, out resource);
+        }
+
+        /// <summary>
+        /// フェード関連フラグをリセットします。
+        /// </summary>
+        private void ResetFadeState()
+        {
+            _isFading = false;
+            _stopAfterFade = false;
+            _fadeSpeed = 0f;
+        }
+
+        /// <summary>
+        /// BGM停止完了時の状態更新を一箇所で行います。
+        /// </summary>
+        /// <param name="stopPlayer">MediaPlayer.Stopを実行するか</param>
+        private void CompleteBgmStop(bool stopPlayer = true)
+        {
+            if (stopPlayer)
+            {
+                try
+                {
+                    MediaPlayer.Stop();
+                }
+                catch (Exception ex)
+                {
+                    Ton.Log.Warning($"StopBGM media stop failed: {ex.Message}");
+                }
+            }
+
+            _isBgmPlaying = false;
+            _currentBgmName = null;
+            _bgmVolume = 0f;
+            _targetBgmVolume = 0f;
+            ResetFadeState();
+        }
+
+        /// <summary>
+        /// 現在再生中BGMに対して音量を反映します。
+        /// </summary>
+        /// <returns>反映できた場合true</returns>
+        private bool ApplyCurrentBgmVolume()
+        {
+            if (!TryGetCurrentBgmResource(out var resource))
+            {
+                return false;
+            }
+
+            MediaPlayer.Volume = MathHelper.Clamp(_bgmVolume * _masterVolume * resource.BaseVolume, 0.0f, 1.0f);
+            return true;
+        }
+
+        /// <summary>
         /// 未使用リソースの破棄時間を設定します。
         /// デフォルトは600秒(10分)です。
         /// </summary>
@@ -176,23 +240,30 @@ namespace Mononotonka
             double totalSeconds = gameTime.TotalGameTime.TotalSeconds;
 
             // BGM再生中は定期的にリソース使用時間を更新（1秒ごと）
-            if (_isBgmPlaying && !string.IsNullOrEmpty(_currentBgmName) && _bgmResources.ContainsKey(_currentBgmName))
+            if (_isBgmPlaying)
             {
-                if (totalSeconds - _lastBgmUpdateTime >= 1.0)
+                if (TryGetCurrentBgmResource(out var playingResource))
                 {
-                    _lastBgmUpdateTime = totalSeconds;
-                    UpdateLastUsed(_bgmResources[_currentBgmName].ContentId, totalSeconds);
+                    if (totalSeconds - _lastBgmUpdateTime >= 1.0)
+                    {
+                        _lastBgmUpdateTime = totalSeconds;
+                        UpdateLastUsed(playingResource.ContentId, totalSeconds);
+                    }
+                }
+                else
+                {
+                    // 参照先が消失している場合は安全側で停止状態へ遷移する
+                    CompleteBgmStop();
                 }
             }
 
             // フェード処理
             if (_isFading)
             {
-                // 停止やアンロード直後などで参照先が無い場合は、フェード状態を安全に解除する
-                if (string.IsNullOrEmpty(_currentBgmName) || !_bgmResources.ContainsKey(_currentBgmName))
+                if (!TryGetCurrentBgmResource(out _))
                 {
-                    _isFading = false;
-                    _stopAfterFade = false;
+                    // アンロード直後などで参照先が無い場合
+                    CompleteBgmStop();
                 }
                 else
                 {
@@ -202,7 +273,7 @@ namespace Mononotonka
                         if (_bgmVolume >= _targetBgmVolume)
                         {
                             _bgmVolume = _targetBgmVolume;
-                            _isFading = false;
+                            ResetFadeState();
                         }
                     }
                     else if (_bgmVolume > _targetBgmVolume)
@@ -211,16 +282,28 @@ namespace Mononotonka
                         if (_bgmVolume <= _targetBgmVolume)
                         {
                             _bgmVolume = _targetBgmVolume;
-                            _isFading = false;
-                            if (_stopAfterFade)
+                            bool stopAfterFade = _stopAfterFade;
+                            ResetFadeState();
+                            if (stopAfterFade)
                             {
-                                MediaPlayer.Stop();
-                                _isBgmPlaying = false;
-                                _currentBgmName = null;
+                                CompleteBgmStop();
                             }
                         }
                     }
-                    MediaPlayer.Volume = _bgmVolume * _masterVolume * _bgmResources[_currentBgmName].BaseVolume;
+                    else
+                    {
+                        bool stopAfterFade = _stopAfterFade;
+                        ResetFadeState();
+                        if (stopAfterFade)
+                        {
+                            CompleteBgmStop();
+                        }
+                    }
+
+                    if (_isBgmPlaying)
+                    {
+                        ApplyCurrentBgmVolume();
+                    }
                 }
             }
 
@@ -439,8 +522,10 @@ namespace Mononotonka
         /// </summary>
         public void PlayBGM(string bgmName, float fadeSeconds = 0.0f, float volume = 1.0f)
         {
+            volume = MathHelper.Clamp(volume, 0.0f, 1.0f);
+
             // リソースが無ければフォールバックSEを鳴らす（エラー通知）
-            if (!_bgmResources.ContainsKey(bgmName))
+            if (!_bgmResources.TryGetValue(bgmName, out var targetResource))
             {
                  Ton.Log.Warning($"PlayBGM: Resource '{bgmName}' not found. Playing fallback.");
                  try 
@@ -463,30 +548,32 @@ namespace Mononotonka
                 if (fadeSeconds > 0)
                 {
                     _isFading = true;
-                    _fadeSpeed = Math.Abs(_targetBgmVolume - _bgmVolume) / fadeSeconds;
+                    _stopAfterFade = false;
+                    _fadeSpeed = Math.Abs(_targetBgmVolume - _bgmVolume) / Math.Max(fadeSeconds, 0.0001f);
                 }
                 else
                 {
-                    _bgmVolume = MathHelper.Clamp(volume, 0.0f, 1.0f);
-                    MediaPlayer.Volume = MathHelper.Clamp(_bgmVolume * _masterVolume * _bgmResources[bgmName].BaseVolume, 0.0f, 1.0f);
-                    _isFading = false;
-                    _stopAfterFade = false; // フェードアウト中の再開などを想定してフラグを折る
+                    _bgmVolume = _targetBgmVolume;
+                    ResetFadeState();
+                    ApplyCurrentBgmVolume();
                 }
                 return;
             }
 
             // 新しいBGMの再生（既存のフェード状態はリセット）
-            _isFading = false;
-            _stopAfterFade = false;
+            ResetFadeState();
 
-            Song song = _bgmResources[bgmName].Data;
+            Song song = targetResource.Data;
             MediaPlayer.IsRepeating = true;
             
             _currentBgmName = bgmName;
             _targetBgmVolume = volume;
             
             // Usage更新
-            UpdateLastUsed(_bgmResources[bgmName].ContentId, Ton.Game.GetTotalGameTime().TotalSeconds);
+            if (Ton.Game != null)
+            {
+                UpdateLastUsed(targetResource.ContentId, Ton.Game.GetTotalGameTime().TotalSeconds);
+            }
 
             // Resume判定
             TimeSpan startPos = TimeSpan.Zero;
@@ -502,7 +589,7 @@ namespace Mononotonka
             {
                 _bgmVolume = 0f;
                 _isFading = true;
-                _fadeSpeed = volume / fadeSeconds;
+                _fadeSpeed = _targetBgmVolume / Math.Max(fadeSeconds, 0.0001f);
                 
                 // Play
                 try {
@@ -517,8 +604,8 @@ namespace Mononotonka
             }
             else
             {
-                _bgmVolume = volume;
-                _isFading = false;
+                _bgmVolume = _targetBgmVolume;
+                ResetFadeState();
 
                 // Play
                 try {
@@ -528,8 +615,8 @@ namespace Mononotonka
                      MediaPlayer.Play(song); // Fallback
                 }
 
-                MediaPlayer.Volume = MathHelper.Clamp(_bgmVolume * _masterVolume * _bgmResources[bgmName].BaseVolume, 0.0f, 1.0f);
                 _isBgmPlaying = true;
+                ApplyCurrentBgmVolume();
             }
         }
 
@@ -548,7 +635,11 @@ namespace Mononotonka
         }
         public void StopBGM(float fadeSeconds = 0.0f, bool bPause = false)
         {
-            if (!_isBgmPlaying) return;
+            if (!_isBgmPlaying)
+            {
+                ResetFadeState();
+                return;
+            }
 
             if (bPause && !string.IsNullOrEmpty(_currentBgmName))
             {
@@ -563,20 +654,16 @@ namespace Mononotonka
                 }
             }
 
-            if (fadeSeconds > 0)
+            if (fadeSeconds > 0 && _bgmVolume > 0.0f && TryGetCurrentBgmResource(out _))
             {
                 _targetBgmVolume = 0f;
                 _isFading = true;
-                _fadeSpeed = _bgmVolume / fadeSeconds;
+                _fadeSpeed = _bgmVolume / Math.Max(fadeSeconds, 0.0001f);
                 _stopAfterFade = true;
             }
             else
             {
-                MediaPlayer.Stop();
-                _isBgmPlaying = false;
-                _isFading = false;
-                _stopAfterFade = false;
-                _currentBgmName = null;
+                CompleteBgmStop();
             }
         }
 
@@ -634,9 +721,9 @@ namespace Mononotonka
         public void SetMasterVolume(float volume)
         {
             _masterVolume = MathHelper.Clamp(volume, 0.0f, 1.0f);
-            if (_isBgmPlaying && !_isFading && !string.IsNullOrEmpty(_currentBgmName) && _bgmResources.ContainsKey(_currentBgmName))
+            if (_isBgmPlaying && !_isFading)
             {
-                MediaPlayer.Volume = _bgmVolume * _masterVolume * _bgmResources[_currentBgmName].BaseVolume;
+                ApplyCurrentBgmVolume();
             }
         }
 
@@ -671,11 +758,11 @@ namespace Mononotonka
         /// <returns>長さ(TimeSpan)。再生していない場合はZero。</returns>
         public TimeSpan GetBGMLength()
         {
-            if (!_isBgmPlaying || string.IsNullOrEmpty(_currentBgmName) || !_bgmResources.ContainsKey(_currentBgmName))
+            if (!_isBgmPlaying || !TryGetCurrentBgmResource(out var resource))
             {
                 return TimeSpan.Zero;
             }
-            return _bgmResources[_currentBgmName].Data.Duration;
+            return resource.Data.Duration;
         }
 
         /// <summary>
