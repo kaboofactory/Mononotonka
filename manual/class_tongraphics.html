@@ -257,7 +257,7 @@
             </ul>
         </div>
         <div class="card">
-            <div class="method-sig">void FillRect(float x, float y, float w, float h, Color color)</div>
+            <div class="method-sig">void FillRect(int x, int y, int w, int h, Color color)</div>
             <p>塗りつぶされた矩形を描画します。</p>
             <ul>
                 <li><code>x</code>, <code>y</code>: 座標</li>
@@ -297,7 +297,7 @@
             </ul>
         </div>
         <div class="card">
-            <div class="method-sig">void ShakeScreen(float seconds, float ratioX, float ratioY)</div>
+            <div class="method-sig">void ShakeScreen(float seconds, float ratioX, float ratioY, float frequency = 20.0f)</div>
             <p>画面全体を振動させます。</p>
             <ul>
                 <li><code>seconds</code>: 持続時間（秒）</li>

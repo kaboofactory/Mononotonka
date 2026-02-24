@@ -40,6 +40,12 @@
             <div class="method-sig">static TonCharacter Character</div>
             <p>キャラクター管理クラスへのアクセス。<br>
                 (推奨短縮形: <code>Ton.Character</code> / 実体: <code>Ton.Instance.character</code>)</p>
+            <div class="method-sig">static TonConfigMenu ConfigMenu</div>
+            <p>設定メニュー管理クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.ConfigMenu</code> / 実体: <code>Ton.Instance.configmenu</code>)</p>
+            <div class="method-sig">static TonSaveLoadMenu SaveLoadMenu</div>
+            <p>セーブ/ロードメニュー管理クラスへのアクセス。<br>
+                (推奨短縮形: <code>Ton.SaveLoadMenu</code> / 実体: <code>Ton.Instance.saveload</code>)</p>
             <div class="method-sig">static TonLog Log</div>
             <p>ログ管理クラスへのアクセス。<br>
                 (推奨短縮形: <code>Ton.Log</code> / 実体: <code>Ton.Instance.log</code>)</p>
@@ -101,14 +107,14 @@
 protected override void Initialize()
 {
     // Initialize Mononotonka with Game and GraphicsDeviceManager
-    Ton.Initialize(this, _graphics);
+    Ton.Instance.Initialize(this, _graphics);
     base.Initialize();
 }
 
 protected override void Update(GameTime gameTime)
 {
     // Update all subsystems
-    Ton.Update(gameTime);
+    Ton.Instance.Update(gameTime);
     base.Update(gameTime);
 }
 
@@ -117,14 +123,14 @@ protected override void Draw(GameTime gameTime)
     GraphicsDevice.Clear(Color.Black);
 
     // Draw all subsystems
-    Ton.Draw(gameTime);
+    Ton.Instance.Draw(gameTime);
     
     base.Draw(gameTime);
 }
 
 protected override void UnloadContent()
 {
-    Ton.Terminate();
+    Ton.Instance.Terminate();
 }</code></pre>
     </div>
 </body>

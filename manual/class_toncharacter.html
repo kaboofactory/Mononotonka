@@ -69,11 +69,12 @@
             </ul>
         </div>
         <div class="card">
-            <div class="method-sig">void MoveTo(string id, int targetX, float speed)</div>
+            <div class="method-sig">void MoveTo(string id, int targetX, float speed, CharacterAnimType moveAnim = CharacterAnimType.Walk)</div>
             <p>指定X座標へ移動させます。</p>
             <ul>
                 <li><code>targetX</code>: 目標X座標</li>
                 <li><code>speed</code>: 移動速度</li>
+                <li><code>moveAnim</code>: 移動中に使用するアニメーション種別（省略時: Walk）</li>
             </ul>
         </div>
         <div class="card">

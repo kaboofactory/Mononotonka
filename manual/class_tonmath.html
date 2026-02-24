@@ -39,11 +39,29 @@
             <p>二点間の角度（ラジアン）を計算します。</p>
         </div>
         <div class="card">
-            <div class="method-sig">bool HitCheck(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2)</div>
+            <div class="method-sig">bool HitCheckRect(Rectangle rect1, Rectangle rect2)</div>
             <p>二つの矩形の当たり判定（交差判定）を行います。</p>
             <ul>
-                <li><code>x1, y1, w1, h1</code>: 矩形1の情報</li>
-                <li><code>x2, y2, w2, h2</code>: 矩形2の情報</li>
+                <li><code>rect1</code>: 判定対象の矩形1</li>
+                <li><code>rect2</code>: 判定対象の矩形2</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool HitCheckCircle(Vector2 pos1, float r1, Vector2 pos2, float r2)</div>
+            <p>二つの円の当たり判定（交差判定）を行います。</p>
+            <ul>
+                <li><code>pos1</code>: 円1の中心座標</li>
+                <li><code>r1</code>: 円1の半径</li>
+                <li><code>pos2</code>: 円2の中心座標</li>
+                <li><code>r2</code>: 円2の半径</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool IsPointInRect(float x, float y, Rectangle rect)</div>
+            <p>点が矩形内に含まれているかを判定します。</p>
+            <ul>
+                <li><code>x, y</code>: 判定する点の座標</li>
+                <li><code>rect</code>: 判定対象の矩形</li>
             </ul>
         </div>
 
@@ -60,12 +78,19 @@ float dist = Ton.math.GetDistance(x1, y1, x2, y2);
 // Angle in radians
 float angle = Ton.math.GetAngle(playerX, playerY, mouseX, mouseY);
 
-// Simple AABB Collision
-bool isHit = Ton.math.HitCheck(
-    player.X, player.Y, 32, 32,
-    bullet.X, bullet.Y, 8, 8
+// Rectangle vs Rectangle
+Rectangle playerRect = new Rectangle((int)player.X, (int)player.Y, 32, 32);
+Rectangle bulletRect = new Rectangle((int)bullet.X, (int)bullet.Y, 8, 8);
+bool isHitRect = Ton.math.HitCheckRect(playerRect, bulletRect);
+
+// Circle vs Circle
+bool isHitCircle = Ton.math.HitCheckCircle(
+    new Vector2(player.X, player.Y), 16f,
+    new Vector2(enemy.X, enemy.Y), 24f
 );
-if (isHit) { /* Damage */ }</code></pre>
+
+// Point in Rectangle
+bool isMouseOnButton = Ton.math.IsPointInRect(mouseX, mouseY, buttonRect);</code></pre>
     </div>
 </body>
 

@@ -108,8 +108,6 @@ namespace Mononotonka
                 };
                 Ton.Storage.Save(CONFIG_FILENAME, data);
                 _isDirty = false;
-                Ton.Storage.Save(CONFIG_FILENAME, data);
-                _isDirty = false;
                 Ton.Log.Info($"ConfigMenu: Saved {CONFIG_FILENAME}");
                 Ton.Log.Info($"[Config] Res: {data.Width}x{data.Height}, Full: {data.IsFullScreen}, Vol: {data.MasterVolume:F2}, MsgSpeed: {data.MsgSpeed}");
             }

@@ -139,7 +139,10 @@ namespace Mononotonka
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"TonLog.Close Failed: {ex.Message}");
+            }
         }
 
         /// <summary>

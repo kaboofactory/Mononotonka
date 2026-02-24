@@ -188,30 +188,40 @@ namespace Mononotonka
             // フェード処理
             if (_isFading)
             {
-                if (_bgmVolume < _targetBgmVolume)
+                // 停止やアンロード直後などで参照先が無い場合は、フェード状態を安全に解除する
+                if (string.IsNullOrEmpty(_currentBgmName) || !_bgmResources.ContainsKey(_currentBgmName))
                 {
-                    _bgmVolume += _fadeSpeed * elapsed;
-                    if (_bgmVolume >= _targetBgmVolume)
-                    {
-                        _bgmVolume = _targetBgmVolume;
-                        _isFading = false;
-                    }
+                    _isFading = false;
+                    _stopAfterFade = false;
                 }
-                else if (_bgmVolume > _targetBgmVolume)
+                else
                 {
-                    _bgmVolume -= _fadeSpeed * elapsed;
-                    if (_bgmVolume <= _targetBgmVolume)
+                    if (_bgmVolume < _targetBgmVolume)
                     {
-                        _bgmVolume = _targetBgmVolume;
-                        _isFading = false;
-                        if (_stopAfterFade)
+                        _bgmVolume += _fadeSpeed * elapsed;
+                        if (_bgmVolume >= _targetBgmVolume)
                         {
-                            MediaPlayer.Stop();
-                            _isBgmPlaying = false;
+                            _bgmVolume = _targetBgmVolume;
+                            _isFading = false;
                         }
                     }
+                    else if (_bgmVolume > _targetBgmVolume)
+                    {
+                        _bgmVolume -= _fadeSpeed * elapsed;
+                        if (_bgmVolume <= _targetBgmVolume)
+                        {
+                            _bgmVolume = _targetBgmVolume;
+                            _isFading = false;
+                            if (_stopAfterFade)
+                            {
+                                MediaPlayer.Stop();
+                                _isBgmPlaying = false;
+                                _currentBgmName = null;
+                            }
+                        }
+                    }
+                    MediaPlayer.Volume = _bgmVolume * _masterVolume * _bgmResources[_currentBgmName].BaseVolume;
                 }
-                MediaPlayer.Volume = _bgmVolume * _masterVolume * _bgmResources[_currentBgmName].BaseVolume;
             }
 
             // リソース破棄チェック (10秒ごとに実行)
@@ -224,8 +234,19 @@ namespace Mononotonka
                 {
                     if (kvp.Value.Instances != null)
                     {
-                         // 停止または破棄されたインスタンスを除去
-                         kvp.Value.Instances.RemoveAll(i => i.State == SoundState.Stopped || i.IsDisposed);
+                        // 停止済みインスタンスを明示的に破棄してから管理リストから除去する
+                        for (int i = kvp.Value.Instances.Count - 1; i >= 0; i--)
+                        {
+                            var instance = kvp.Value.Instances[i];
+                            if (instance == null || instance.IsDisposed || instance.State == SoundState.Stopped)
+                            {
+                                if (instance != null && !instance.IsDisposed)
+                                {
+                                    instance.Dispose();
+                                }
+                                kvp.Value.Instances.RemoveAt(i);
+                            }
+                        }
                     }
                 }
 
@@ -428,7 +449,10 @@ namespace Mononotonka
                      fbWithVol.Volume = MathHelper.Clamp(volume * _masterVolume, 0f, 1f);
                      fbWithVol.Play();
                  }
-                 catch { /* mute */ }
+                 catch (Exception ex)
+                 {
+                     Ton.Log.Warning($"PlayBGM fallback failed: {ex.Message}");
+                 }
                  return;
             }
 
@@ -550,6 +574,8 @@ namespace Mononotonka
             {
                 MediaPlayer.Stop();
                 _isBgmPlaying = false;
+                _isFading = false;
+                _stopAfterFade = false;
                 _currentBgmName = null;
             }
         }
@@ -572,7 +598,10 @@ namespace Mononotonka
                      fbWithVol.Volume = MathHelper.Clamp(volume * _masterVolume, 0f, 1f);
                      fbWithVol.Play();
                  }
-                 catch { /* mute */ }
+                 catch (Exception ex)
+                 {
+                     Ton.Log.Warning($"PlaySE fallback failed: {ex.Message}");
+                 }
                  return;
             }else
             {
@@ -605,7 +634,7 @@ namespace Mononotonka
         public void SetMasterVolume(float volume)
         {
             _masterVolume = MathHelper.Clamp(volume, 0.0f, 1.0f);
-            if (_isBgmPlaying && !_isFading)
+            if (_isBgmPlaying && !_isFading && !string.IsNullOrEmpty(_currentBgmName) && _bgmResources.ContainsKey(_currentBgmName))
             {
                 MediaPlayer.Volume = _bgmVolume * _masterVolume * _bgmResources[_currentBgmName].BaseVolume;
             }

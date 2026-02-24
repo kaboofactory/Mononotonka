@@ -279,9 +279,18 @@ namespace Mononotonka
         /// <param name="height">高さ</param>
         public void SetVirtualResolution(int width, int height)
         {
+            if (width <= 0 || height <= 0)
+            {
+                Ton.Log.Warning($"SetVirtualResolution ignored: invalid size {width}x{height}");
+                return;
+            }
+
             VirtualWidth = width;
             VirtualHeight = height;
             _isScreenDestinationRectDirty = true;
+
+            // 仮想解像度変更に追従して、描画先レンダーターゲットも再生成する
+            Ton.Gra.OnVirtualResolutionChanged(width, height);
         }
 
         /// <summary>

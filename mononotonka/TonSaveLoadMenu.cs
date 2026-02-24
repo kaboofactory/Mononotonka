@@ -423,13 +423,9 @@ namespace Mononotonka
                 if (Ton.Storage.Exists(filename))
                 {
                     // データが存在する場合
-                    try
-                    {
-                        // 具体的な日時などが取得できないため、ひとまず"Data Exists"と表示
-                        // 将来的にはここでセーブ日時を表示すると親切
-                        Ton.Gra.DrawText("Data Exists", 300, yPos + 25, Color.Gray, 0.7f);
-                    }
-                    catch {}
+                    // 具体的な日時などが取得できないため、ひとまず"Data Exists"と表示
+                    // 将来的にはここでセーブ日時を表示すると親切
+                    Ton.Gra.DrawText("Data Exists", 300, yPos + 25, Color.Gray, 0.7f);
                 }
                 else
                 {

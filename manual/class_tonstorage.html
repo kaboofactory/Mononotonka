@@ -29,6 +29,13 @@
                 <li><code>fileName</code>: ファイル名</li>
             </ul>
         </div>
+        <div class="card">
+            <div class="method-sig">bool Exists(string fileName)</div>
+            <p>指定したセーブファイルが存在するかを判定します。</p>
+            <ul>
+                <li><code>fileName</code>: ファイル名</li>
+            </ul>
+        </div>
 
         <h2>Sample Code</h2>
         <pre><code>// A simple data class
@@ -40,14 +47,17 @@ public class SaveData
 
 // Save Data
 var data = new SaveData { Level = 5, Score = 1000 };
-Ton.storage.Save("save1.json", data);
+Ton.Storage.Save("save1.json", data);
 
 // Load Data
-var loaded = Ton.storage.Load&lt;SaveData&gt;("save1.json");
-if (loaded != null)
+if (Ton.Storage.Exists("save1.json"))
 {
-    // Restore state
-    currentScore = loaded.Score;
+    var loaded = Ton.Storage.Load&lt;SaveData&gt;("save1.json");
+    if (loaded != null)
+    {
+        // Restore state
+        currentScore = loaded.Score;
+    }
 }</code></pre>
     </div>
 </body>

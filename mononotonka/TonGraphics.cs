@@ -123,8 +123,7 @@ namespace Mononotonka
             _pixel.SetData(new[] { Color.White });
 
             // 仮想画面の生成
-            _virtualScreen = new RenderTarget2D(game.GraphicsDevice, Ton.Game.VirtualWidth, Ton.Game.VirtualHeight, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
-            _tempScreen = new RenderTarget2D(game.GraphicsDevice, Ton.Game.VirtualWidth, Ton.Game.VirtualHeight, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
+            CreateVirtualRenderTargets(Ton.Game.VirtualWidth, Ton.Game.VirtualHeight);
             
             // "Default" グループの作成
             GetOrCreateContentGroup("Default");
@@ -134,6 +133,46 @@ namespace Mononotonka
 
             // アンチエイリアスの初期設定（デフォルト有効）
             SetAntiAliasing(true);
+        }
+
+        /// <summary>
+        /// 仮想画面用レンダーターゲットを再生成します。
+        /// </summary>
+        /// <param name="width">仮想画面幅</param>
+        /// <param name="height">仮想画面高さ</param>
+        private void CreateVirtualRenderTargets(int width, int height)
+        {
+            if (_game == null) return;
+
+            // 既存ターゲットを明示的に解除してから破棄し、GPU参照不整合を防ぐ
+            _game.GraphicsDevice.SetRenderTarget(null);
+
+            _virtualScreen?.Dispose();
+            _tempScreen?.Dispose();
+
+            _virtualScreen = new RenderTarget2D(_game.GraphicsDevice, width, height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
+            _tempScreen = new RenderTarget2D(_game.GraphicsDevice, width, height, false, SurfaceFormat.Color, DepthFormat.None, 0, RenderTargetUsage.PreserveContents);
+        }
+
+        /// <summary>
+        /// 仮想解像度変更時に、内部レンダーターゲットを新しいサイズへ再生成します。
+        /// </summary>
+        /// <param name="width">仮想画面幅</param>
+        /// <param name="height">仮想画面高さ</param>
+        public void OnVirtualResolutionChanged(int width, int height)
+        {
+            if (width <= 0 || height <= 0)
+            {
+                Ton.Log.Warning($"[Graphics] Invalid virtual resolution: {width}x{height}");
+                return;
+            }
+
+            if (_game == null || _game.GraphicsDevice == null)
+            {
+                return;
+            }
+
+            CreateVirtualRenderTargets(width, height);
         }
 
         // ヘルパー: グループ取得・作成
@@ -446,6 +485,12 @@ namespace Mononotonka
         /// <param name="targetName">ターゲット名（nullの場合は仮想画面）</param>
         public void SetRenderTarget(string targetName = null)
         {
+            if (targetName != null && !_renderTargets.ContainsKey(targetName))
+            {
+                Ton.Log.Error($"[Graphics] SetRenderTarget failed: target '{targetName}' not found.");
+                return;
+            }
+
             _spriteBatch.End(); // 前の描画をフラッシュ
             _currentTargetName = targetName;
             
@@ -453,7 +498,7 @@ namespace Mononotonka
             {
                 _game.GraphicsDevice.SetRenderTarget(_virtualScreen);
             }
-            else if (_renderTargets.ContainsKey(targetName))
+            else
             {
                 _game.GraphicsDevice.SetRenderTarget(_renderTargets[targetName]);
             }
