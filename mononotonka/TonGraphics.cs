@@ -84,6 +84,8 @@ namespace Mononotonka
         private RenderTarget2D _tempScreen; // multiple filter ping-pong buff
         private Dictionary<string, RenderTarget2D> _renderTargets = new Dictionary<string, RenderTarget2D>(StringComparer.OrdinalIgnoreCase);
         private string _currentTargetName = null;
+        private string _pendingBackBufferBgName = null;
+        private TonDrawParam _pendingBackBufferBgParam = null;
 
         private Effect _mainEffect;
         private List<TonFilterParam> _currentFilters = new List<TonFilterParam>();
@@ -637,6 +639,7 @@ namespace Mononotonka
                 // Force Clear (Ensure RT is null)
                 _game.GraphicsDevice.SetRenderTargets(null);
                 _game.GraphicsDevice.Clear(Color.Black);
+                DrawPendingBackBufferBackground();
 
                 // フィルターなしの場合
                 if (_currentFilters.Count == 0)
@@ -702,6 +705,8 @@ namespace Mononotonka
                     _spriteBatch.Draw(source, destRect, Color.White);
                     _spriteBatch.End();
                 }
+
+                ClearPendingBackBufferBackground();
             }
             else
             {
@@ -975,6 +980,96 @@ namespace Mononotonka
             };
 
             DrawEx(imageName, vw / 2.0f, vh / 2.0f, 0, 0, tex.Width, tex.Height, paramEx);
+        }
+
+        /// <summary>
+        /// 本画面（バックバッファ）に背景描画を予約します。
+        /// 実際の描画は End() 内で、仮想画面の転送前に行われます。
+        /// </summary>
+        /// <param name="imageName">画像名</param>
+        /// <param name="param">描画パラメータ（省略可）</param>
+        public void DrawBackgroundToBackBuffer(string imageName, TonDrawParam param = null)
+        {
+            if (string.IsNullOrWhiteSpace(imageName))
+            {
+                Ton.Log.Warning("[Graphics] DrawBackgroundToBackBuffer: imageName is null or empty.");
+                return;
+            }
+
+            TonDrawParam source = param ?? new TonDrawParam();
+            _pendingBackBufferBgName = imageName;
+            _pendingBackBufferBgParam = new TonDrawParam
+            {
+                Alpha = source.Alpha,
+                Color = source.Color,
+                FlipH = source.FlipH,
+                FlipV = source.FlipV
+            };
+        }
+
+        /// <summary>
+        /// バックバッファ背景描画の予約を消去します。
+        /// </summary>
+        private void ClearPendingBackBufferBackground()
+        {
+            _pendingBackBufferBgName = null;
+            _pendingBackBufferBgParam = null;
+        }
+
+        /// <summary>
+        /// 予約された背景をバックバッファへ描画します。
+        /// </summary>
+        private void DrawPendingBackBufferBackground()
+        {
+            if (string.IsNullOrEmpty(_pendingBackBufferBgName))
+            {
+                return;
+            }
+
+            var tex = GetTexture(_pendingBackBufferBgName);
+            if (tex == null || tex.IsDisposed || tex.Width <= 0 || tex.Height <= 0)
+            {
+                return;
+            }
+
+            TonDrawParam param = _pendingBackBufferBgParam ?? new TonDrawParam();
+            int bw = _game.GraphicsDevice.PresentationParameters.BackBufferWidth;
+            int bh = _game.GraphicsDevice.PresentationParameters.BackBufferHeight;
+            if (bw <= 0 || bh <= 0)
+            {
+                return;
+            }
+
+            Rectangle src = CalculateAspectFillSourceRect(tex.Width, tex.Height, bw, bh);
+            SpriteEffects effects = SpriteEffects.None;
+            if (param.FlipH) effects |= SpriteEffects.FlipHorizontally;
+            if (param.FlipV) effects |= SpriteEffects.FlipVertically;
+
+            _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null);
+            _spriteBatch.Draw(tex, new Rectangle(0, 0, bw, bh), src, param.Color * param.Alpha, 0f, Vector2.Zero, effects, 0f);
+            _spriteBatch.End();
+        }
+
+        /// <summary>
+        /// Aspect Fill のためのソース矩形を計算します。
+        /// </summary>
+        private Rectangle CalculateAspectFillSourceRect(int sourceWidth, int sourceHeight, int targetWidth, int targetHeight)
+        {
+            float sourceAspect = (float)sourceWidth / sourceHeight;
+            float targetAspect = (float)targetWidth / targetHeight;
+
+            if (sourceAspect > targetAspect)
+            {
+                int cropWidth = Math.Clamp((int)Math.Round(sourceHeight * targetAspect), 1, sourceWidth);
+                int cropX = (sourceWidth - cropWidth) / 2;
+                return new Rectangle(cropX, 0, cropWidth, sourceHeight);
+            }
+            else
+            {
+                int cropHeight = Math.Clamp((int)Math.Round(sourceWidth / targetAspect), 1, sourceHeight);
+                int cropY = (sourceHeight - cropHeight) / 2;
+                return new Rectangle(0, cropY, sourceWidth, cropHeight);
+            }
         }
 
         /// <summary>

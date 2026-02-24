@@ -104,6 +104,10 @@ namespace Mononotonka
 
         public void Draw()
         {
+            // 背景描画(バックバッファに直接描画)
+            Ton.Gra.DrawBackgroundToBackBuffer("neko_bg");
+
+            // 画面クリア
             Ton.Gra.Clear(Color.DarkSlateBlue);
 
             // シーンの説明

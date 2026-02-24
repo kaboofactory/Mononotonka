@@ -47,8 +47,7 @@ namespace Mononotonka
             Ton.Game.SetResizable(true);
 
             // 最初のシーンへ移動します
-            //Ton.Scene.Change(new SampleScene01());
-            Ton.Scene.Change(new SampleScene05());
+            Ton.Scene.Change(new SampleScene01());
 
             base.Initialize();
         }
@@ -93,6 +92,7 @@ namespace Mononotonka
             Ton.Gra.LoadTexture("sample_assets/image/finger", "finger");
             Ton.Gra.LoadTexture("sample_assets/image/scroll_up", "scroll_up");
             Ton.Gra.LoadTexture("sample_assets/image/scroll_down", "scroll_down");
+            Ton.Gra.LoadTexture("sample_assets/image/neko_bg", "neko_bg");
         }
 
         /// <summary>

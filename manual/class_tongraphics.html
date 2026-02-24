@@ -181,6 +181,15 @@
             </ul>
         </div>
         <div class="card">
+            <div class="method-sig">void DrawBackgroundToBackBuffer(string imageName, TonDrawParam param = null)</div>
+            <p>本画面（バックバッファ）に背景描画を予約します。<br>
+                実際の描画はフレーム終端の転送処理時に行われ、仮想画面の描画とは別レイヤーとして扱われます。</p>
+            <ul>
+                <li><code>imageName</code>: 画像の登録ID</li>
+                <li><code>param</code>: 描画オプション（色や反転など）</li>
+            </ul>
+        </div>
+        <div class="card">
             <div class="method-sig">void DrawEx(string imageName, float toX, float toY, int fromX, int fromY, int w, int
                 h, TonDrawParamEx param)</div>
             <p>詳細なパラメータを指定して画像を描画します（中心座標基準）。</p>
@@ -429,6 +438,9 @@ if (player.IsDamaged)
 
 
 // In Draw()
+// Draw background directly to real back buffer (e.g. for letterbox area)
+Ton.Gra.DrawBackgroundToBackBuffer("landscape");
+
 // Simple Draw at (100, 100). Size assumed 32x32 from src(0,0).
 var tex = Ton.Gra.LoadTexture("player", "player"); // LoadTexture returns cached texture if already loaded
 if (tex != null)
