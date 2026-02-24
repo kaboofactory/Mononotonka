@@ -57,6 +57,9 @@ namespace Mononotonka
         /// </summary>
         protected override void LoadContent()
         {
+            // グラフィックスデバイスの最大テクスチャサイズを取得して、ログに出力します。(実生成してチェックするので)
+            Ton.Gra.GetMaxTextureSize();
+
             // 各シーンに入る前に事前に読み込んでおきたいデータがあればここに記述します。
             // 例: Ton.Gra.LoadTexture("image/hero", "hero");
 

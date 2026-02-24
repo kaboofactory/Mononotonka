@@ -40,7 +40,6 @@
                 <li><code>Color Color</code>: 乗算する色。(既定値 White)</li>
                 <li><code>bool FlipH</code>: 左右反転するか。(既定値 false)</li>
                 <li><code>bool FlipV</code>: 上下反転するか。(既定値 false)</li>
-                <li><code>float MosaicSize</code>: モザイクサイズ（注: 現在の実装では詳細パラメータとしてのモザイクは未サポートの可能性があります）。</li>
             </ul>
         </div>
         <div class="card">
@@ -144,6 +143,11 @@
             <p>指定した画像（またはレンダーターゲット）の高さを取得します。見つからない場合は0を返します。</p>
         </div>
         <div class="card">
+            <div class="method-sig">int GetMaxTextureSize()</div>
+            <p>現在の実行環境で利用可能な最大テクスチャサイズ（一辺のピクセル数）を取得します。<br>
+                初回呼び出し時に内部プローブを行い、以後はキャッシュ値を返します。</p>
+        </div>
+        <div class="card">
             <div class="method-sig">void Clear(Color? color = null)</div>
             <p>現在の描画先（画面またはレンダーターゲット）を指定色で塗りつぶしてクリアします。<br>
                 <strong>注意:</strong> 描画処理は遅延実行（バッチ処理）されるため、<code>Draw</code> メソッドの後に <code>Clear</code> を呼ぶと、
@@ -200,6 +204,18 @@
                 <li><code>w</code>, <code>h</code>: 描画するサイズ</li>
                 <li><code>param</code>: 拡張描画オプション（回転、スケール、反転など）</li>
             </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool TryGetTexturePointFromDrawEx(Vector2 virtualPoint, float toX, float toY, int fromX, int fromY, int w, int h, TonDrawParamEx param, out Point texturePoint)</div>
+            <p><code>DrawEx</code> と同じ変換ルールで、仮想画面座標が指しているテクスチャ座標を取得します。</p>
+            <ul>
+                <li><code>virtualPoint</code>: 仮想画面上の座標（例: <code>Ton.Input.GetMousePosition()</code> の戻り値）</li>
+                <li><code>toX</code>, <code>toY</code>: <code>DrawEx</code> の描画中心座標</li>
+                <li><code>fromX</code>, <code>fromY</code>, <code>w</code>, <code>h</code>: <code>DrawEx</code> の切り出し情報</li>
+                <li><code>param</code>: <code>DrawEx</code> の拡張描画オプション</li>
+                <li><code>texturePoint</code>: 取得されたテクスチャ座標（成功時）</li>
+            </ul>
+            <p>対象外を指している場合や変換不能な場合は <code>false</code> を返します。</p>
         </div>
         <div class="card">
             <div class="method-sig">void DrawAnim(string imageName, int x, int y, TonAnimState anim, TonDrawParam
@@ -451,6 +467,23 @@ if (tex != null)
 // Draw with Parameter (Flip Horizontal, Red Tint, 50% Alpha)
 var param = new TonDrawParam() { FlipH = true, Color = Color.Red, Alpha = 0.5f };
 Ton.Gra.Draw("player", 200, 100, 0, 0, 32, 32, param);
+
+// DrawEx + 座標逆変換の例（ズーム中のマップ）
+var mapParam = new TonDrawParamEx { ScaleX = zoom, ScaleY = zoom, Angle = 0f };
+Ton.Gra.DrawEx("WorldMapRt", mapCenterX, mapCenterY, 0, 0, mapWidth, mapHeight, mapParam);
+
+Vector2 mouseVirtual = Ton.Input.GetMousePosition();
+if (Ton.Gra.TryGetTexturePointFromDrawEx(
+    mouseVirtual,
+    mapCenterX, mapCenterY,
+    0, 0, mapWidth, mapHeight,
+    mapParam,
+    out Point texPoint))
+{
+    // テクスチャ座標（ピクセル）をタイル座標へ変換（タイルサイズ32）
+    int tileX = texPoint.X / 32;
+    int tileY = texPoint.Y / 32;
+}
 
 // Draw Animation
 Ton.Gra.DrawAnim("player_sheet", 300, 100, anim);

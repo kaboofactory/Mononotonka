@@ -124,7 +124,7 @@ namespace Mononotonka
             // Aボタン長押しで戻る
             if (Ton.Input.GetPressedDuration("A") > 1.0f)
             {
-                Ton.Scene.Change(new SampleScene01(), 0.5f, 0.2f, Color.OrangeRed);
+                Ton.Scene.Change(new SampleScene17(), 0.5f, 0.2f, Color.OrangeRed);
             }
         }
 

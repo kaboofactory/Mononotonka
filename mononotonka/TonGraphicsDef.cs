@@ -201,7 +201,7 @@ namespace Mononotonka
 
     /// <summary>
     /// 拡張描画パラメータクラスです。
-    /// 拡大縮小、回転、モザイクなどの追加効果を指定できます。
+    /// 拡大縮小、回転などの追加効果を指定できます。
     /// </summary>
     public class TonDrawParamEx
     {
@@ -219,8 +219,6 @@ namespace Mononotonka
         public bool FlipH = false;
         /// <summary>上下反転</summary>
         public bool FlipV = false;
-        /// <summary>モザイクサイズ(未実装)</summary>
-        public float MosaicSize = 0.0f;
 
         public TonDrawParamEx() { }
         public TonDrawParamEx(float scale) { ScaleX = scale; ScaleY = scale; }

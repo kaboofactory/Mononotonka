@@ -736,6 +736,15 @@ namespace Mononotonka
         }
 
         /// <summary>
+        /// 現在BGMを再生中かどうかを取得します。
+        /// </summary>
+        /// <returns>再生中ならtrue、それ以外はfalse</returns>
+        public bool IsBGMPlaying()
+        {
+            return _isBgmPlaying;
+        }
+
+        /// <summary>
         /// 現在再生中のBGMの再生位置を取得します。
         /// </summary>
         /// <returns>再生位置(TimeSpan)。再生していない場合はZero。</returns>

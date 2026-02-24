@@ -46,6 +46,7 @@ namespace Mononotonka
         // メモリ使用量（推定）
         private long _totalTextureMemory = 0;
         private long _maxTextureMemory = 0;
+        private int _cachedMaxTextureSize = 0;
 
         /// <summary>
         /// 現在のテクスチャメモリ使用量（バイト）を取得します。
@@ -479,6 +480,201 @@ namespace Mononotonka
         {
             var tex = GetTexture(name);
             return tex?.Height ?? 0;
+        }
+
+        /// <summary>
+        /// 現在のデバイスで利用可能な最大テクスチャサイズ（一辺のピクセル数）を取得します。
+        /// 初回呼び出し時のみプローブを行い、以後はキャッシュ値を返します。
+        /// </summary>
+        /// <returns>最大テクスチャサイズ（一辺）</returns>
+        public int GetMaxTextureSize()
+        {
+            if (_cachedMaxTextureSize > 0)
+            {
+                return _cachedMaxTextureSize;
+            }
+
+            _cachedMaxTextureSize = ProbeMaxTextureSize();
+            Ton.Log.Info($"[Graphics] MaxTextureSize: {_cachedMaxTextureSize}");
+            return _cachedMaxTextureSize;
+        }
+
+        /// <summary>
+        /// DrawExと同じ座標変換ルールで、仮想座標が指しているテクスチャ座標を取得します。
+        /// </summary>
+        /// <param name="virtualPoint">仮想画面上の座標</param>
+        /// <param name="toX">DrawExに渡す中心X</param>
+        /// <param name="toY">DrawExに渡す中心Y</param>
+        /// <param name="fromX">DrawExに渡す切り出し元X</param>
+        /// <param name="fromY">DrawExに渡す切り出し元Y</param>
+        /// <param name="w">DrawExに渡す切り出し幅</param>
+        /// <param name="h">DrawExに渡す切り出し高さ</param>
+        /// <param name="param">DrawExに渡す拡張パラメータ</param>
+        /// <param name="texturePoint">取得したテクスチャ座標（成功時）</param>
+        /// <returns>対象内ならtrue、対象外または計算不能ならfalse</returns>
+        public bool TryGetTexturePointFromDrawEx(
+            Vector2 virtualPoint,
+            float toX,
+            float toY,
+            int fromX,
+            int fromY,
+            int w,
+            int h,
+            TonDrawParamEx param,
+            out Point texturePoint)
+        {
+            texturePoint = Point.Zero;
+
+            if (w <= 0 || h <= 0)
+            {
+                return false;
+            }
+
+            TonDrawParamEx p = param ?? new TonDrawParamEx();
+
+            float scaleX = p.ScaleX * (p.FlipH ? -1.0f : 1.0f);
+            float scaleY = p.ScaleY * (p.FlipV ? -1.0f : 1.0f);
+            if (Math.Abs(scaleX) <= 0.000001f || Math.Abs(scaleY) <= 0.000001f)
+            {
+                return false;
+            }
+
+            Matrix drawMatrix = Matrix.CreateTranslation(-w / 2.0f, -h / 2.0f, 0.0f)
+                * Matrix.CreateScale(scaleX, scaleY, 1.0f)
+                * Matrix.CreateRotationZ(p.Angle)
+                * Matrix.CreateTranslation(toX, toY, 0.0f);
+
+            // 逆行列が作れない（退化変換）ケースを弾く。
+            float determinant = drawMatrix.Determinant();
+            if (Math.Abs(determinant) <= 0.000001f)
+            {
+                return false;
+            }
+
+            Matrix inverseMatrix;
+            Matrix.Invert(ref drawMatrix, out inverseMatrix);
+            Vector2 localPoint = Vector2.Transform(virtualPoint, inverseMatrix);
+
+            if (localPoint.X < 0.0f || localPoint.Y < 0.0f || localPoint.X >= w || localPoint.Y >= h)
+            {
+                return false;
+            }
+
+            int srcX = fromX + (int)Math.Floor(localPoint.X);
+            int srcY = fromY + (int)Math.Floor(localPoint.Y);
+            texturePoint = new Point(srcX, srcY);
+            return true;
+        }
+
+        /// <summary>
+        /// GraphicsProfileに基づく保守的な最大テクスチャサイズを取得します。
+        /// </summary>
+        /// <returns>保守的な最大サイズ</returns>
+        private int GetGraphicsProfileFallbackMaxTextureSize()
+        {
+            GraphicsProfile profile = _graphics?.GraphicsProfile ?? GraphicsProfile.Reach;
+            return profile == GraphicsProfile.HiDef ? 4096 : 2048;
+        }
+
+        /// <summary>
+        /// 指定サイズの正方テクスチャ作成可否を確認します。
+        /// </summary>
+        /// <param name="size">確認サイズ</param>
+        /// <returns>作成できる場合true</returns>
+        private bool TryCreateTextureForProbe(int size)
+        {
+            if (size <= 0 || _game?.GraphicsDevice == null)
+            {
+                return false;
+            }
+
+            Texture2D probeTexture = null;
+            try
+            {
+                probeTexture = new Texture2D(_game.GraphicsDevice, size, size, false, SurfaceFormat.Color);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Ton.Log.Warning($"[Graphics] MaxTexture probe failed at {size}px: {ex.Message}");
+                return false;
+            }
+            finally
+            {
+                probeTexture?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// 現在のデバイスで利用可能な最大テクスチャサイズをプローブします。
+        /// </summary>
+        /// <returns>最大サイズ</returns>
+        private int ProbeMaxTextureSize()
+        {
+            int fallback = GetGraphicsProfileFallbackMaxTextureSize();
+            if (_game?.GraphicsDevice == null)
+            {
+                return fallback;
+            }
+
+            int knownGood;
+            int knownBad = 0;
+
+            if (TryCreateTextureForProbe(fallback))
+            {
+                knownGood = fallback;
+
+                // まず倍々で上限側を探索し、上限失敗点（knownBad）を見つける。
+                const int probeLimit = 16384;
+                int probeSize = fallback;
+                while (probeSize < probeLimit)
+                {
+                    int next = Math.Min(probeSize * 2, probeLimit);
+                    if (next == probeSize)
+                    {
+                        break;
+                    }
+
+                    if (TryCreateTextureForProbe(next))
+                    {
+                        knownGood = next;
+                        probeSize = next;
+                        continue;
+                    }
+
+                    knownBad = next;
+                    break;
+                }
+            }
+            else
+            {
+                knownGood = 1;
+                knownBad = fallback;
+            }
+
+            if (knownBad == 0)
+            {
+                return Math.Max(knownGood, 1);
+            }
+
+            // knownGood < answer < knownBad の範囲を二分探索する。
+            int left = knownGood + 1;
+            int right = knownBad - 1;
+            while (left <= right)
+            {
+                int mid = left + ((right - left) / 2);
+                if (TryCreateTextureForProbe(mid))
+                {
+                    knownGood = mid;
+                    left = mid + 1;
+                }
+                else
+                {
+                    right = mid - 1;
+                }
+            }
+
+            return Math.Max(knownGood, 1);
         }
 
         /// <summary>
