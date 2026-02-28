@@ -47,8 +47,7 @@ namespace Mononotonka
             Ton.Game.SetResizable(true);
 
             // 最初のシーンへ移動します
-            //Ton.Scene.Change(new SampleScene01());
-            Ton.Scene.Change(new SampleScene08());
+            Ton.Scene.Change(new SampleScene01());
 
             base.Initialize();
         }
