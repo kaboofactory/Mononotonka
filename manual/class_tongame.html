@@ -94,28 +94,27 @@
             </ul>
         </div>
 
-        <h2>Sample Code</h2>
+<h2>Sample Code</h2>
         <pre><code>// Initialize window settings
 // Set actual window size to 1280x720
-Ton.game.SetWindowSize(1280, 720);
+Ton.Game.SetWindowSize(1280, 720);
 
 // Set virtual resolution (game logic size) to 640x360
-Ton.game.SetVirtualResolution(640, 360);
+Ton.Game.SetVirtualResolution(640, 360);
 
 // Toggle Fullscreen on Start button
-if (Ton.input.IsJustPressed("Start"))
+if (Ton.Input.IsJustPressed("Start"))
 {
-    Ton.game.ToggleFullScreen(!Ton.game.GetIsFullScreen());
+    Ton.Game.ToggleFullScreen(!Ton.Game.GetIsFullScreen());
 }
 
 // Log current FPS (Update/Draw)
-float updateFps = Ton.game.GetUpdateFPS();
-float drawFps = Ton.game.GetDrawFPS();
-Ton.log.Info($"FPS - Update: {updateFps}, Draw: {drawFps}");
+float updateFps = Ton.Game.GetUpdateFPS();
+float drawFps = Ton.Game.GetDrawFPS();
+Ton.Log.Info($"FPS - Update: {updateFps}, Draw: {drawFps}");
 
-// Get mouse position converted to virtual coordinates
-Vector2 mouseWin = Mouse.GetState().Position.ToVector2();
-Vector2 mouseVirtual = Ton.game.ConvertWindowToVirtual(mouseWin);</code></pre>
+// Get mouse position in virtual coordinates
+Vector2 mouseVirtual = Ton.Input.GetMousePosition();</code></pre>
     </div>
 </body>
 

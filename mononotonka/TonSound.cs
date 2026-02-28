@@ -73,8 +73,14 @@ namespace Mononotonka
         
         // BGM 状態
         private float _masterVolume = 1.0f;
+        private float _bgmVolumeScale = 1.0f;
+        private float _seVolumeScale = 1.0f;
         private string _currentBgmName = null;
         private bool _isBgmPlaying = false;
+        private bool _isSeMutedByUser = false;
+        private bool _isBgmMutedByUser = false;
+        private bool _isMutedByInactiveWindow = false;
+        private bool _muteWhenInactive = false;
         
         // Resume用
         private string _pausedBgmName = null;
@@ -182,6 +188,79 @@ namespace Mononotonka
         }
 
         /// <summary>
+        /// 現在のSEミュート有効状態を取得します。
+        /// </summary>
+        /// <returns>ミュート有効時はtrue</returns>
+        private bool IsEffectiveSeMuted()
+        {
+            return _isSeMutedByUser || _isMutedByInactiveWindow;
+        }
+
+        /// <summary>
+        /// 現在のBGMミュート有効状態を取得します。
+        /// </summary>
+        /// <returns>ミュート有効時はtrue</returns>
+        private bool IsEffectiveBgmMuted()
+        {
+            return _isBgmMutedByUser || _isMutedByInactiveWindow;
+        }
+
+        /// <summary>
+        /// 再生中BGMへ現在のミュート状態を反映します。
+        /// </summary>
+        private void ApplyBgmMuteState()
+        {
+            if (!_isBgmPlaying)
+            {
+                return;
+            }
+
+            ApplyCurrentBgmVolume();
+        }
+
+        /// <summary>
+        /// すべてのSEインスタンスを停止して破棄します。
+        /// </summary>
+        private void StopAllSeInstancesForMute()
+        {
+            foreach (var resource in _seResources.Values)
+            {
+                if (resource.Instances == null)
+                {
+                    continue;
+                }
+
+                for (int i = resource.Instances.Count - 1; i >= 0; i--)
+                {
+                    var instance = resource.Instances[i];
+                    if (instance == null)
+                    {
+                        resource.Instances.RemoveAt(i);
+                        continue;
+                    }
+
+                    try
+                    {
+                        if (!instance.IsDisposed && instance.State != SoundState.Stopped)
+                        {
+                            instance.Stop();
+                        }
+                    }
+                    catch
+                    {
+                        // 破棄処理優先のため、停止失敗は握りつぶして続行します。
+                    }
+
+                    if (!instance.IsDisposed)
+                    {
+                        instance.Dispose();
+                    }
+                    resource.Instances.RemoveAt(i);
+                }
+            }
+        }
+
+        /// <summary>
         /// BGM停止完了時の状態更新を一箇所で行います。
         /// </summary>
         /// <param name="stopPlayer">MediaPlayer.Stopを実行するか</param>
@@ -217,7 +296,10 @@ namespace Mononotonka
                 return false;
             }
 
-            MediaPlayer.Volume = MathHelper.Clamp(_bgmVolume * _masterVolume * resource.BaseVolume, 0.0f, 1.0f);
+            float effectiveVolume = IsEffectiveBgmMuted()
+                ? 0.0f
+                : _bgmVolume * _masterVolume * _bgmVolumeScale * resource.BaseVolume;
+            MediaPlayer.Volume = MathHelper.Clamp(effectiveVolume, 0.0f, 1.0f);
             return true;
         }
 
@@ -229,6 +311,141 @@ namespace Mononotonka
         public void SetCacheTimeout(double seconds)
         {
             _cacheTimeout = seconds;
+        }
+
+        /// <summary>
+        /// 効果音(SE)の手動ミュート状態を設定します。
+        /// </summary>
+        /// <param name="muted">trueでミュート、falseで解除</param>
+        public void SetSEMuted(bool muted)
+        {
+            if (_isSeMutedByUser == muted)
+            {
+                return;
+            }
+
+            bool wasMuted = IsEffectiveSeMuted();
+            _isSeMutedByUser = muted;
+            bool isMuted = IsEffectiveSeMuted();
+
+            if (!wasMuted && isMuted)
+            {
+                StopAllSeInstancesForMute();
+            }
+        }
+
+        /// <summary>
+        /// 効果音(SE)の手動ミュート状態を取得します。
+        /// </summary>
+        /// <returns>手動ミュート中ならtrue</returns>
+        public bool IsSEMuted()
+        {
+            return _isSeMutedByUser;
+        }
+
+        /// <summary>
+        /// BGMの手動ミュート状態を設定します。
+        /// </summary>
+        /// <param name="muted">trueでミュート、falseで解除</param>
+        public void SetBGMMuted(bool muted)
+        {
+            if (_isBgmMutedByUser == muted)
+            {
+                return;
+            }
+
+            bool wasMuted = IsEffectiveBgmMuted();
+            _isBgmMutedByUser = muted;
+            bool isMuted = IsEffectiveBgmMuted();
+
+            if (wasMuted != isMuted)
+            {
+                ApplyBgmMuteState();
+            }
+        }
+
+        /// <summary>
+        /// BGMの手動ミュート状態を取得します。
+        /// </summary>
+        /// <returns>手動ミュート中ならtrue</returns>
+        public bool IsBGMMuted()
+        {
+            return _isBgmMutedByUser;
+        }
+
+        /// <summary>
+        /// ウィンドウ非アクティブ時に自動ミュートするかを設定します。
+        /// </summary>
+        /// <param name="enabled">trueで有効、falseで無効</param>
+        public void SetMuteWhenInactive(bool enabled)
+        {
+            bool wasBgmMuted = IsEffectiveBgmMuted();
+            bool wasSeMuted = IsEffectiveSeMuted();
+
+            _muteWhenInactive = enabled;
+            if (!_muteWhenInactive)
+            {
+                _isMutedByInactiveWindow = false;
+            }
+            else
+            {
+                var state = Ton.Game != null ? Ton.Game.GetWindowActivityState() : TonWindowActivityState.Active;
+                _isMutedByInactiveWindow = (state == TonWindowActivityState.Inactive || state == TonWindowActivityState.JustDeactivated);
+            }
+
+            bool isBgmMuted = IsEffectiveBgmMuted();
+            bool isSeMuted = IsEffectiveSeMuted();
+
+            if (!wasSeMuted && isSeMuted)
+            {
+                StopAllSeInstancesForMute();
+            }
+
+            if (wasBgmMuted != isBgmMuted)
+            {
+                ApplyBgmMuteState();
+            }
+        }
+
+        /// <summary>
+        /// ウィンドウ非アクティブ時自動ミュート設定を取得します。
+        /// </summary>
+        /// <returns>有効ならtrue</returns>
+        public bool GetMuteWhenInactive()
+        {
+            return _muteWhenInactive;
+        }
+
+        /// <summary>
+        /// ウィンドウ状態を反映して自動ミュートを更新します。
+        /// </summary>
+        /// <param name="state">ウィンドウ状態</param>
+        public void ApplyWindowActivityState(TonWindowActivityState state)
+        {
+            bool wasBgmMuted = IsEffectiveBgmMuted();
+            bool wasSeMuted = IsEffectiveSeMuted();
+
+            if (_muteWhenInactive)
+            {
+                _isMutedByInactiveWindow = (state == TonWindowActivityState.Inactive || state == TonWindowActivityState.JustDeactivated);
+            }
+            else
+            {
+                _isMutedByInactiveWindow = false;
+            }
+
+            bool isBgmMuted = IsEffectiveBgmMuted();
+            bool isSeMuted = IsEffectiveSeMuted();
+
+            if (!wasSeMuted && isSeMuted)
+            {
+                StopAllSeInstancesForMute();
+            }
+
+            if (wasBgmMuted != isBgmMuted)
+            {
+                ApplyBgmMuteState();
+            }
         }
 
         /// <summary>
@@ -528,15 +745,18 @@ namespace Mononotonka
             if (!_bgmResources.TryGetValue(bgmName, out var targetResource))
             {
                  Ton.Log.Warning($"PlayBGM: Resource '{bgmName}' not found. Playing fallback.");
-                 try 
+                 if (!IsEffectiveSeMuted())
                  {
-                     var fbWithVol = GetFallbackSE().CreateInstance();
-                     fbWithVol.Volume = MathHelper.Clamp(volume * _masterVolume, 0f, 1f);
-                     fbWithVol.Play();
-                 }
-                 catch (Exception ex)
-                 {
-                     Ton.Log.Warning($"PlayBGM fallback failed: {ex.Message}");
+                     try 
+                     {
+                         var fbWithVol = GetFallbackSE().CreateInstance();
+                         fbWithVol.Volume = MathHelper.Clamp(volume * _masterVolume * _seVolumeScale, 0f, 1f);
+                         fbWithVol.Play();
+                     }
+                     catch (Exception ex)
+                     {
+                         Ton.Log.Warning($"PlayBGM fallback failed: {ex.Message}");
+                     }
                  }
                  return;
             }
@@ -675,6 +895,11 @@ namespace Mononotonka
 
         public void PlaySE(string seName, float volume = 1.0f)
         {
+            if (IsEffectiveSeMuted())
+            {
+                return;
+            }
+
             if (!_seResources.ContainsKey(seName))
             {
                  // リソース消失（または未ロード）
@@ -682,7 +907,7 @@ namespace Mononotonka
                  try
                  {
                      var fbWithVol = GetFallbackSE().CreateInstance();
-                     fbWithVol.Volume = MathHelper.Clamp(volume * _masterVolume, 0f, 1f);
+                     fbWithVol.Volume = MathHelper.Clamp(volume * _masterVolume * _seVolumeScale, 0f, 1f);
                      fbWithVol.Play();
                  }
                  catch (Exception ex)
@@ -694,7 +919,7 @@ namespace Mononotonka
             {
                 var res = _seResources[seName];
                 var instance = res.Data.CreateInstance();
-                instance.Volume = MathHelper.Clamp(volume * res.BaseVolume * _masterVolume, 0.0f, 1.0f);
+                instance.Volume = MathHelper.Clamp(volume * res.BaseVolume * _masterVolume * _seVolumeScale, 0.0f, 1.0f);
                 instance.Play();
 
                 // 管理リストに追加
@@ -721,10 +946,44 @@ namespace Mononotonka
         public void SetMasterVolume(float volume)
         {
             _masterVolume = MathHelper.Clamp(volume, 0.0f, 1.0f);
-            if (_isBgmPlaying && !_isFading)
-            {
-                ApplyCurrentBgmVolume();
-            }
+            ApplyBgmMuteState();
+        }
+
+        /// <summary>
+        /// BGM全体の音量係数を設定します。
+        /// </summary>
+        /// <param name="volume">音量係数(0.0-1.0)</param>
+        public void SetBGMVolume(float volume)
+        {
+            _bgmVolumeScale = MathHelper.Clamp(volume, 0.0f, 1.0f);
+            ApplyBgmMuteState();
+        }
+
+        /// <summary>
+        /// BGM全体の音量係数を取得します。
+        /// </summary>
+        /// <returns>BGM音量係数</returns>
+        public float GetBGMVolume()
+        {
+            return _bgmVolumeScale;
+        }
+
+        /// <summary>
+        /// SE全体の音量係数を設定します。
+        /// </summary>
+        /// <param name="volume">音量係数(0.0-1.0)</param>
+        public void SetSEVolume(float volume)
+        {
+            _seVolumeScale = MathHelper.Clamp(volume, 0.0f, 1.0f);
+        }
+
+        /// <summary>
+        /// SE全体の音量係数を取得します。
+        /// </summary>
+        /// <returns>SE音量係数</returns>
+        public float GetSEVolume()
+        {
+            return _seVolumeScale;
         }
 
         /// <summary>

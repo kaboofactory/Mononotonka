@@ -131,6 +131,7 @@ namespace Mononotonka
 
             game.Update(gameTime);
             input.Update(gameTime);
+            sound.ApplyWindowActivityState(game.GetWindowActivityState());
             sound.Update(gameTime); // 音は止めない
 
             if (!isMenuOpen)

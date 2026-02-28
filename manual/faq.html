@@ -142,7 +142,7 @@
         <div class="card">
             <div class="method-sig">Q. 音が鳴らねえぞ！ どうなってやがる！</div>
             <p><strong>A. 下手な言い訳すんじゃねえ！</strong><br>
-                <code>Ton.Update</code> は毎フレーム呼んでるか？ 音量（MasterVolume）がゼロになってねえか？<br>
+                <code>Ton.Instance.Update</code> は毎フレーム呼んでるか？ 音量（MasterVolume）がゼロになってねえか？<br>
                 そこら辺が間違ってなきゃ、ファイルパスが合ってるか確認しな！ 大文字小文字は気にしなくていいようにしてやってるが、ファイル自体がなきゃ音は出ねえぞ！
             </p>
         </div>
@@ -151,6 +151,24 @@
             <p><strong>A. <code>PlayBGM</code> の引数を見てみな！</strong><br>
                 <code>fadeSeconds</code> って引数があるだろ？ そこに秒数を入れれば、今の曲をフェードアウトさせながら新しい曲をフェードインさせてやるよ。粋な計らいってやつだ！
             </p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. BGMとSEの音量を別々に変えてぇ！</div>
+            <p><strong>A. できるに決まってんだろ！</strong><br>
+                <code>Ton.Sound.SetBGMVolume</code> と <code>Ton.Sound.SetSEVolume</code> を使いな！<br>
+                コンフィグ画面を使うなら <code>BGM Volume</code> と <code>SE Volume</code> の項目でそのまま調整できるぜ！</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. ウィンドウを裏にしたら音が消えるんだが？</div>
+            <p><strong>A. そりゃ仕様だ！</strong><br>
+                <code>Mute In Background</code> がONだと、非アクティブ時にBGM/SEを自動でミュートするぜ。<br>
+                鳴らしっぱなしにしたいなら、コンフィグでOFFにするか <code>Ton.Sound.SetMuteWhenInactive(false)</code> を呼びな！</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. 音量をいじってるのに思ったより小せぇ（でけぇ）！</div>
+            <p><strong>A. 掛け算になってんだ、そこを見ろ！</strong><br>
+                最終音量は <code>Master</code> × <code>BGM/SE</code> × <code>Load時baseVolume</code> × <code>Play時volume</code> だ。<br>
+                どれか1つでも小せぇと全体が小さくなるから、全部確認しな！</p>
         </div>
         <div class="card">
             <div class="method-sig">Q. パンはねぇのかよパンは</div>
@@ -232,6 +250,18 @@
                 <code>Ton.ConfigMenu.Open</code> を呼ぶだけで、必要最低限のコンフィグ項目を含む画面が開くぜ！<br>
                 自分で作ったほうがいいと思うなら、そうした方がいいぜ！！Mononotonkaのコードを直すのもありだぜ！
             </p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. コンフィグの設定っていつ保存されるんでい？</div>
+            <p><strong>A. メニューを閉じた時だ！</strong><br>
+                値をいじっただけじゃ保存は確定しねえ。<code>Close</code> された時に <code>config.json</code> へ保存される仕組みだ。<br>
+                反映はその場でされるが、保存したいならちゃんと閉じてから終わりにしな！</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">Q. フルスクリーン中にResolutionが変えられねえ！</div>
+            <p><strong>A. わざと止めてんだ！</strong><br>
+                フルスクリーン中はチラつき防止のため、<code>Resolution</code> 項目を無効化してある。<br>
+                先にフルスクリーンをOFFにしてから、解像度を変えな！</p>
         </div>
 
         <h2> ログ (Log)</h2>

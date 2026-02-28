@@ -6,13 +6,13 @@ namespace Mononotonka
 {
     /// <summary>
     /// コンフィグメニュー管理クラス。
-    /// ゲーム内設定変更用UI（フルスクリーン切替、音量、メッセージ速度）を提供します。
+    /// ゲーム内設定変更用UI（フルスクリーン切替、各種音量、メッセージ速度、バックグラウンド時ミュート）を提供します。
     /// </summary>
     public class TonConfigMenu
     {
         private bool _isOpen = false;
         private int _selectedIndex = 0;
-        private string[] _items = { "Fullscreen", "Resolution", "Master Volume", "Message Speed", "Close" };
+        private string[] _items = { "Fullscreen", "Resolution", "Master Volume", "BGM Volume", "SE Volume", "Message Speed", "Mute In Background", "Close" };
         private const string CONFIG_FILENAME = "config.json";
         
         // Resolution List
@@ -32,7 +32,10 @@ namespace Mononotonka
             public int Height { get; set; }
             public bool IsFullScreen { get; set; }
             public float MasterVolume { get; set; }
+            public float? BgmVolume { get; set; }
+            public float? SeVolume { get; set; }
             public int MsgSpeed { get; set; }
+            public bool MuteWhenInactive { get; set; }
         }
 
         public void Initialize()
@@ -45,6 +48,9 @@ namespace Mononotonka
                 Ton.Game.SetWindowSize(data.Width, data.Height);
                 Ton.Game.ToggleFullScreen(data.IsFullScreen);
                 Ton.Sound.SetMasterVolume(data.MasterVolume);
+                Ton.Sound.SetBGMVolume(data.BgmVolume ?? 1.0f);
+                Ton.Sound.SetSEVolume(data.SeVolume ?? 1.0f);
+                Ton.Sound.SetMuteWhenInactive(data.MuteWhenInactive);
                 
                 // メッセージ速度
                 // 既存リストから近いものを探す
@@ -63,7 +69,7 @@ namespace Mononotonka
                 Ton.Msg.SetTextSpeed(_msgSpeeds[_msgSpeedIndex]);
                 
                 Ton.Log.Info("ConfigMenu: Loaded config.json");
-                Ton.Log.Info($"[Config] Res: {data.Width}x{data.Height}, Full: {data.IsFullScreen}, Vol: {data.MasterVolume:F2}, MsgSpeed: {data.MsgSpeed}");
+                Ton.Log.Info($"[Config] Res: {data.Width}x{data.Height}, Full: {data.IsFullScreen}, Master: {data.MasterVolume:F2}, BGM: {Ton.Sound.GetBGMVolume():F2}, SE: {Ton.Sound.GetSEVolume():F2}, MsgSpeed: {data.MsgSpeed}, MuteInBg: {data.MuteWhenInactive}");
             }
         }
 
@@ -104,12 +110,15 @@ namespace Mononotonka
                     Height = Ton.Game.WindowHeight,
                     IsFullScreen = Ton.Game.IsFullScreen,
                     MasterVolume = (float)Math.Round(Ton.Sound.GetMasterVolume(), 2),
-                    MsgSpeed = _msgSpeeds[_msgSpeedIndex]
+                    BgmVolume = (float)Math.Round(Ton.Sound.GetBGMVolume(), 2),
+                    SeVolume = (float)Math.Round(Ton.Sound.GetSEVolume(), 2),
+                    MsgSpeed = _msgSpeeds[_msgSpeedIndex],
+                    MuteWhenInactive = Ton.Sound.GetMuteWhenInactive()
                 };
                 Ton.Storage.Save(CONFIG_FILENAME, data);
                 _isDirty = false;
                 Ton.Log.Info($"ConfigMenu: Saved {CONFIG_FILENAME}");
-                Ton.Log.Info($"[Config] Res: {data.Width}x{data.Height}, Full: {data.IsFullScreen}, Vol: {data.MasterVolume:F2}, MsgSpeed: {data.MsgSpeed}");
+                Ton.Log.Info($"[Config] Res: {data.Width}x{data.Height}, Full: {data.IsFullScreen}, Master: {data.MasterVolume:F2}, BGM: {data.BgmVolume:F2}, SE: {data.SeVolume:F2}, MsgSpeed: {data.MsgSpeed}, MuteInBg: {data.MuteWhenInactive}");
             }
         }
 
@@ -167,6 +176,36 @@ namespace Mononotonka
             }
         }
 
+        /// <summary>
+        /// コンフィグの音量項目を指定方向へ調整します。
+        /// </summary>
+        /// <param name="currentVol">現在値</param>
+        /// <param name="dir">方向（+1/-1）</param>
+        /// <returns>調整後の音量</returns>
+        private float AdjustVolumeValue(float currentVol, int dir)
+        {
+            float step;
+            float nextVol = currentVol;
+            if (dir > 0)
+            {
+                step = currentVol >= 0.40f - 0.001f ? 0.05f : 0.02f;
+                nextVol += step;
+            }
+            else
+            {
+                step = currentVol > 0.40f + 0.001f ? 0.05f : 0.02f;
+                nextVol -= step;
+            }
+
+            // 浮動小数点の誤差蓄積を抑えるため、2桁で丸めます。
+            nextVol = (float)Math.Round(nextVol, 2);
+            return MathHelper.Clamp(nextVol, 0f, 1f);
+        }
+
+        /// <summary>
+        /// 選択中項目の設定値を変更します。
+        /// </summary>
+        /// <param name="dir">方向（+1/-1）</param>
         private void ChangeSetting(int dir)
         {
             _isDirty = true; // 変更フラグON
@@ -193,47 +232,16 @@ namespace Mononotonka
                         Ton.Game.CenterWindow();
                     }
                     break;
-                case 2: // Volume
-                    float currentVol = Ton.Sound.GetMasterVolume();
-                    float step = 0.02f;
-                    if (currentVol >= 0.40f - 0.001f)
-                    {
-                        step = 0.05f;
-                    }
-
-                    // Lowering volume from exactly 0.40f should use small step?
-                    // Request: "40% or more is 5% steps", "39% or less is 2% steps"
-                    // If at 0.40 (40%), going up -> 0.45 (+0.05). Correct.
-                    // If at 0.40 (40%), going down -> 0.38 (-0.02).
-                    // If at 0.38 (38%), going up -> 0.40 (+0.02). Correct.
-                    
-                    // Logic:
-                    // If going UP (dir > 0):
-                    //   If current >= 0.39f, add 0.05f (to reach 0.45 from 0.40).
-                    //   Else add 0.02f.
-                    // If going DOWN (dir < 0):
-                    //   If current > 0.41f, subtract 0.05f.
-                    //   Else subtract 0.02f.
-                    
-                    float nextVol = currentVol;
-                    if (dir > 0)
-                    {
-                        if (currentVol >= 0.40f - 0.001f) step = 0.05f;
-                        else step = 0.02f;
-                        nextVol += step;
-                    }
-                    else
-                    {
-                        if (currentVol > 0.40f + 0.001f) step = 0.05f;
-                        else step = 0.02f;
-                        nextVol -= step;
-                    }
-
-                    // Round to avoid float drift (2 decimal places)
-                    nextVol = (float)Math.Round(nextVol, 2);
-                    Ton.Sound.SetMasterVolume(MathHelper.Clamp(nextVol, 0f, 1f));
+                case 2: // Master Volume
+                    Ton.Sound.SetMasterVolume(AdjustVolumeValue(Ton.Sound.GetMasterVolume(), dir));
                     break;
-                case 3: // Msg Speed
+                case 3: // BGM Volume
+                    Ton.Sound.SetBGMVolume(AdjustVolumeValue(Ton.Sound.GetBGMVolume(), dir));
+                    break;
+                case 4: // SE Volume
+                    Ton.Sound.SetSEVolume(AdjustVolumeValue(Ton.Sound.GetSEVolume(), dir));
+                    break;
+                case 5: // Msg Speed
                     _msgSpeedIndex += dir;
                     if (_msgSpeedIndex < 0) _msgSpeedIndex = 0;
                     if (_msgSpeedIndex >= _msgSpeeds.Length) _msgSpeedIndex = _msgSpeeds.Length - 1;
@@ -241,6 +249,10 @@ namespace Mononotonka
                     // メッセージ速度反映
                     Ton.Msg.SetTextSpeed(_msgSpeeds[_msgSpeedIndex]);
                     Ton.Log.Info($"Config: MsgSpeed set to {_msgSpeeds[_msgSpeedIndex]}");
+                    break;
+                case 6: // Mute In Background
+                    Ton.Sound.SetMuteWhenInactive(!Ton.Sound.GetMuteWhenInactive());
+                    Ton.Log.Info($"Config: MuteInBackground set to {Ton.Sound.GetMuteWhenInactive()}");
                     break;
             }
         }
@@ -283,10 +295,19 @@ namespace Mononotonka
                     case 2: // Volume
                         valueText = $"{(int)Math.Round(Ton.Sound.GetMasterVolume() * 100)} %";
                         break;
-                    case 3: // Msg Speed
+                    case 3: // BGM Volume
+                        valueText = $"{(int)Math.Round(Ton.Sound.GetBGMVolume() * 100)} %";
+                        break;
+                    case 4: // SE Volume
+                        valueText = $"{(int)Math.Round(Ton.Sound.GetSEVolume() * 100)} %";
+                        break;
+                    case 5: // Msg Speed
                         valueText = $"{_msgSpeeds[_msgSpeedIndex]} ms/char";
                         break;
-                    case 4: // Close
+                    case 6: // Mute In Background
+                        valueText = Ton.Sound.GetMuteWhenInactive() ? "ON" : "OFF";
+                        break;
+                    case 7: // Close
                         // 値なし
                         break;
                 }
@@ -295,7 +316,7 @@ namespace Mononotonka
                 Ton.Gra.DrawText(label, 50, startY + i * 50, c, 0.6f);
                 if (!string.IsNullOrEmpty(valueText))
                 {
-                    Ton.Gra.DrawText(valueText, 300, startY + (i * 50), c, 0.6f);
+                    Ton.Gra.DrawText(valueText, 350, startY + (i * 50), c, 0.6f);
                 }
             }
         }

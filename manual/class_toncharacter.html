@@ -116,37 +116,37 @@
             </ul>
         </div>
 
-        <h2>Sample Code</h2>
+<h2>Sample Code</h2>
         <pre><code>// In Initialize()
 // 1. Add Character "player" at (100, 300)
-Ton.character.AddCharacter("player", 100, 300);
+Ton.Character.AddCharacter("player", 100, 300);
 
 // 2. Register Animations
-Ton.character.AddAnim("player", CharacterAnimType.Idle, "player_sheet", 0, 0, 32, 32, 4, 200);
-Ton.character.AddAnim("player", CharacterAnimType.Walk, "player_sheet", 0, 32, 32, 32, 4, 100);
-Ton.character.AddAnim("player", CharacterAnimType.Jump, "player_sheet", 0, 64, 32, 32, 4, 100);
-Ton.character.AddAnim("player", CharacterAnimType.Surprise, "player_sheet", 0, 96, 32, 32, 4, 100, false);
+Ton.Character.AddAnim("player", CharacterAnimType.Idle, "player_sheet", 0, 0, 32, 32, 4, 200);
+Ton.Character.AddAnim("player", CharacterAnimType.Walk, "player_sheet", 0, 32, 32, 32, 4, 100);
+Ton.Character.AddAnim("player", CharacterAnimType.Jump, "player_sheet", 0, 64, 32, 32, 4, 100);
+Ton.Character.AddAnim("player", CharacterAnimType.Surprise, "player_sheet", 0, 96, 32, 32, 4, 100, false);
 
 // 3. Set Physics
-Ton.character.SetPhysics("player", true, true, 5.0f);
+Ton.Character.SetPhysics("player", true, true, 5.0f);
 
 
 // In Update()
-// 4. Control (Example: Move when key is pressed)
-if (Ton.Input.IsKeyDown(Keys.Right))
+// 4. Control (Example: Move while "Right" is pressed)
+if (Ton.Input.IsPressed("Right"))
 {
     // Move to X=500 with speed 240.0 (px/sec)
-    Ton.character.MoveTo("player", 500, 240.0f);
+    Ton.Character.MoveTo("player", 500, 240.0f);
 }
 
 // Perform One-shot Action
-if (Ton.Input.IsTrigger(Keys.Z))
+if (Ton.Input.IsJustPressed("A"))
 {
-    Ton.character.PlayAction("player", CharacterAnimType.Surprise);
+    Ton.Character.PlayAction("player", CharacterAnimType.Surprise);
 }
 
 // Patrol (Round Trip) - usually called once, maybe in Initialize or event
-// Ton.character.RoundTrip("enemy1", 100, 120.0f);</code></pre>
+// Ton.Character.RoundTrip("enemy1", 100, 120.0f);</code></pre>
     </div>
 </body>
 

@@ -5,6 +5,32 @@ using Microsoft.Xna.Framework.Graphics;
 namespace Mononotonka
 {
     /// <summary>
+    /// ウィンドウのアクティブ状態を表します。
+    /// </summary>
+    public enum TonWindowActivityState
+    {
+        /// <summary>
+        /// 前フレームから継続してアクティブです。
+        /// </summary>
+        Active,
+
+        /// <summary>
+        /// このフレームで非アクティブからアクティブへ遷移しました。
+        /// </summary>
+        JustActivated,
+
+        /// <summary>
+        /// 前フレームから継続して非アクティブです。
+        /// </summary>
+        Inactive,
+
+        /// <summary>
+        /// このフレームでアクティブから非アクティブへ遷移しました。
+        /// </summary>
+        JustDeactivated
+    }
+
+    /// <summary>
     /// 基本的なゲームプロセス管理を行うクラスです。
     /// ウィンドウサイズ、解像度、FPS計測などを担当します。
     /// </summary>
@@ -37,6 +63,8 @@ namespace Mononotonka
         private int _drawFrameCount = 0;
         private float _drawTimer = 0;
         private float _currentDrawFps = 0;
+        private bool _prevWindowActive = true;
+        private TonWindowActivityState _windowActivityState = TonWindowActivityState.Active;
 
         // レターボックス計算キャッシュ用
         private Rectangle _cachedScreenDestinationRect;
@@ -64,6 +92,9 @@ namespace Mononotonka
         {
             _game = game;
             _graphics = graphics;
+            bool currentActive = _game?.IsActive ?? true;
+            _prevWindowActive = currentActive;
+            _windowActivityState = currentActive ? TonWindowActivityState.Active : TonWindowActivityState.Inactive;
 
             // 起動時解像度ログ
             Ton.Log.Info($"Screen Resolution: {_graphics.PreferredBackBufferWidth}x{_graphics.PreferredBackBufferHeight}, FullScreen: {_graphics.IsFullScreen}");
@@ -109,6 +140,17 @@ namespace Mononotonka
         /// <param name="gameTime">時間情報</param>
         public void Update(GameTime gameTime)
         {
+            bool currentActive = _game?.IsActive ?? true;
+            if (currentActive)
+            {
+                _windowActivityState = _prevWindowActive ? TonWindowActivityState.Active : TonWindowActivityState.JustActivated;
+            }
+            else
+            {
+                _windowActivityState = _prevWindowActive ? TonWindowActivityState.JustDeactivated : TonWindowActivityState.Inactive;
+            }
+            _prevWindowActive = currentActive;
+
             // FPS計算
             TotalGameTime = gameTime.TotalGameTime;
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -209,6 +251,15 @@ namespace Mononotonka
         public float GetDrawFPS()
         {
             return DrawFPS;
+        }
+
+        /// <summary>
+        /// 現在のウィンドウ状態を取得します。
+        /// </summary>
+        /// <returns>ウィンドウ状態</returns>
+        public TonWindowActivityState GetWindowActivityState()
+        {
+            return _windowActivityState;
         }
 
         /// <summary>

@@ -26,7 +26,7 @@
                 baseVolume = 1.0f)</div>
             <p>効果音(SE)を読み込みます。</p>
             <ul>
-                <li><code>path</code>: コンテンツパス（Content/sound/se/からの相対パス、拡張子なし）</li>
+                <li><code>path</code>: コンテンツパス（Content/ からの相対パス、拡張子なし）</li>
                 <li><code>name</code>: 登録名（必須）</li>
                 <li><code>contentId</code>: コンテンツグループID。指定したIDごとにリソースがグループ化されます。"Default"グループは自動解放されません。(既定値 "Default")
                 </li>
@@ -38,7 +38,7 @@
                 baseVolume = 1.0f)</div>
             <p>BGMを読み込みます。</p>
             <ul>
-                <li><code>path</code>: コンテンツパス（Content/sound/bgm/からの相対パス、拡張子なし）</li>
+                <li><code>path</code>: コンテンツパス（Content/ からの相対パス、拡張子なし）</li>
                 <li><code>name</code>: 登録名（必須）</li>
                 <li><code>contentId</code>: コンテンツグループID。指定したIDごとにリソースがグループ化されます。"Default"グループは自動解放されません。(既定値 "Default")
                 </li>
@@ -51,7 +51,7 @@
             <p>BGMを再生します。既に再生中のBGMは停止し、新しいBGMへ切り替わります。<br>
                 直前に StopBGM(..., true) で停止されていたBGMを指定した場合、自動的に続きから再生します。</p>
             <ul>
-                <li><code>bgmName</code>: BGMリソース名（Content/sound/bgm/フォルダ内）</li>
+                <li><code>bgmName</code>: <code>LoadBGM</code> で登録したBGM名（<code>name</code>）</li>
                 <li><code>fadeSeconds</code>: フェードインにかける時間（秒）</li>
                 <li><code>volume</code>: 再生音量(0.0～1.0)。範囲外の値は自動的にクリップされます。</li>
             </ul>
@@ -70,7 +70,7 @@
             <div class="method-sig">void PlaySE(string seName, float volume = 1.0f)</div>
             <p>効果音を再生します。</p>
             <ul>
-                <li><code>seName</code>: SEリソース名（Content/sound/se/フォルダ内）</li>
+                <li><code>seName</code>: <code>LoadSound</code> で登録したSE名（<code>name</code>）</li>
                 <li><code>volume</code>: 再生音量(0.0～1.0)。範囲外の値は自動的にクリップされます。</li>
             </ul>
         </div>
@@ -99,6 +99,35 @@
             <p>現在のマスター音量を取得します。</p>
         </div>
         <div class="card">
+            <div class="method-sig">void SetBGMVolume(float volume)</div>
+            <div class="method-sig">float GetBGMVolume()</div>
+            <p>BGM全体の音量係数を設定/取得します（0.0～1.0）。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetSEVolume(float volume)</div>
+            <div class="method-sig">float GetSEVolume()</div>
+            <p>SE全体の音量係数を設定/取得します（0.0～1.0）。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetSEMuted(bool muted)</div>
+            <div class="method-sig">bool IsSEMuted()</div>
+            <p>SE（効果音）の手動ミュート状態を設定/取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetBGMMuted(bool muted)</div>
+            <div class="method-sig">bool IsBGMMuted()</div>
+            <p>BGMの手動ミュート状態を設定/取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void SetMuteWhenInactive(bool enabled)</div>
+            <div class="method-sig">bool GetMuteWhenInactive()</div>
+            <p>ウィンドウ非アクティブ時の自動ミュート設定を変更/取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">void ApplyWindowActivityState(TonWindowActivityState state)</div>
+            <p>ウィンドウ状態をサウンドへ反映します。通常はTonシステムから自動で呼ばれます。</p>
+        </div>
+        <div class="card">
             <div class="method-sig">bool IsBGMPlaying()</div>
             <p>現在BGMを再生中かどうかを取得します。</p>
         </div>
@@ -111,30 +140,45 @@
             <p>現在再生中のBGMの長さ(Duration)を取得します。再生中でない場合はZeroを返します。</p>
         </div>
 
+        <h2>Volume Rules</h2>
+        <div class="card">
+            <p>最終音量は、以下の係数を乗算して決まります（最終的に 0.0～1.0 にクランプされます）。</p>
+            <ul>
+                <li><strong>BGM最終音量</strong> = <code>PlayBGM</code> の <code>volume</code> × <code>Master Volume</code> × <code>BGM Volume</code> × <code>LoadBGM</code> の <code>baseVolume</code></li>
+                <li><strong>SE最終音量</strong> = <code>PlaySE</code> の <code>volume</code> × <code>Master Volume</code> × <code>SE Volume</code> × <code>LoadSound</code> の <code>baseVolume</code></li>
+            </ul>
+            <p>補足:</p>
+            <ul>
+                <li><code>Master Volume</code> はBGM/SEの両方に共通で効きます。</li>
+                <li><code>BGM Volume</code> はBGMだけに、<code>SE Volume</code> はSEだけに効きます。</li>
+                <li>ミュート状態（手動ミュート・バックグラウンド時ミュート）が有効な場合、対象系統の最終音量は 0 になります。</li>
+            </ul>
+        </div>
+
         <h2>Sample Code</h2>
         <pre><code>// In Initialize()
 // Preload BGM into "Stage1" group
-Ton.Sound.LoadBGM("bgm/battle_theme", "battle_theme", "Stage1");
+Ton.Sound.LoadBGM("sample_assets/sound/bgm/tutorial", "tutorial", "Stage1");
 // Preload SE
-Ton.Sound.LoadSound("se/explosion", "explosion", "Stage1");
+Ton.Sound.LoadSound("sample_assets/sound/se/coin", "coin", "Stage1");
 
 
 // In Update() (or Event Handler)
-if (Ton.Input.IsTrigger(Keys.Z))
+if (Ton.Input.IsJustPressed("A"))
 {
     // Play Sound Effect
-    Ton.Sound.PlaySE("explosion");
+    Ton.Sound.PlaySE("coin");
 }
 
-if (Ton.Input.IsTrigger(Keys.B))
+if (Ton.Input.IsJustPressed("B"))
 {
-    // Play BGM (Using registered name "battle_theme")
+    // Play BGM (Using registered name "tutorial")
     // 1.0f volume, 2.0f seconds fade-in
-    Ton.Sound.PlayBGM("battle_theme", 2.0f, 1.0f);
+    Ton.Sound.PlayBGM("tutorial", 2.0f, 1.0f);
 }
 
 // Volume Control
-if (Ton.Input.IsTrigger(Keys.Up))
+if (Ton.Input.IsJustPressed("Up"))
 {
     // Adjust Master Volume (0.0 to 1.0)
     Ton.Sound.SetMasterVolume(0.8f);

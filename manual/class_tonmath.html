@@ -65,32 +65,32 @@
             </ul>
         </div>
 
-        <h2>Sample Code</h2>
+<h2>Sample Code</h2>
         <pre><code>// Random Integer [0, 100)
-int r = Ton.math.Rand(0, 100);
+int r = Ton.Math.Rand(0, 100);
 
 // Random Float [0.0, 1.0]
-float f = Ton.math.RandF(0f, 1f);
+float f = Ton.Math.RandF(0f, 1f);
 
 // Distance between (x1,y1) and (x2,y2)
-float dist = Ton.math.GetDistance(x1, y1, x2, y2);
+float dist = Ton.Math.GetDistance(x1, y1, x2, y2);
 
 // Angle in radians
-float angle = Ton.math.GetAngle(playerX, playerY, mouseX, mouseY);
+float angle = Ton.Math.GetAngle(playerX, playerY, mouseX, mouseY);
 
 // Rectangle vs Rectangle
 Rectangle playerRect = new Rectangle((int)player.X, (int)player.Y, 32, 32);
 Rectangle bulletRect = new Rectangle((int)bullet.X, (int)bullet.Y, 8, 8);
-bool isHitRect = Ton.math.HitCheckRect(playerRect, bulletRect);
+bool isHitRect = Ton.Math.HitCheckRect(playerRect, bulletRect);
 
 // Circle vs Circle
-bool isHitCircle = Ton.math.HitCheckCircle(
+bool isHitCircle = Ton.Math.HitCheckCircle(
     new Vector2(player.X, player.Y), 16f,
     new Vector2(enemy.X, enemy.Y), 24f
 );
 
 // Point in Rectangle
-bool isMouseOnButton = Ton.math.IsPointInRect(mouseX, mouseY, buttonRect);</code></pre>
+bool isMouseOnButton = Ton.Math.IsPointInRect(mouseX, mouseY, buttonRect);</code></pre>
     </div>
 </body>
 

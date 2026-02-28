@@ -1,151 +1,153 @@
-using System;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using Mononotonka;
 
 namespace Mononotonka
 {
-    // テスト保存用データクラス
-    public class TestSaveData
-    {
-        public int Counter { get; set; } = 0;
-        public string Message { get; set; } = "Hello Storage";
-        public float PlayerX { get; set; } = 100f;
-    }
-
     /// <summary>
-    /// TonStorage と TonConfigMenu のテスト用シーン
+    /// TonConfigMenuの動作確認に特化したテスト用シーンです。
     /// </summary>
     public class SampleScene08 : IScene
     {
-        private TestSaveData _data;
         private string _statusMessage = "Ready.";
-        private const string SAVE_FILE_NAME = "test_data.json";
-        private Random _random = new Random(DateTime.Now.Millisecond + (int)DateTime.Now.Ticks);
-
-        // Rボタン押下時間
-        float fHoldRButton = 0.0f;
+        private int _sePlayCount = 0;
+        private float _holdRButton = 0.0f;
 
         public void Initialize()
         {
-            // 初期化処理開始
             Ton.Log.Info("Scene " + this.GetType().Name + " Initializing.");
 
-            _data = new TestSaveData();
-            // 初期化時にロードはしない（明示的にテストするため）
-
-            // BGMロード(マスタボリュームテスト用)
+            // TonConfigMenuの確認で使うBGM/SEをロードする
             Ton.Sound.LoadBGM("sample_assets/sound/bgm/tutorial", "tutorial");
-            Ton.Sound.PlayBGM("tutorial");
+            Ton.Sound.LoadSound("sample_assets/sound/se/coin", "coin");
 
-            // 初期化処理終了
+            Ton.Sound.PlayBGM("tutorial");
+            _statusMessage = "BGM started.";
             Ton.Log.Info("Scene " + this.GetType().Name + " Initialized.");
         }
 
         public void Terminate()
         {
-            // 終了処理開始
             Ton.Log.Info("Scene " + this.GetType().Name + " Terminating.");
 
-            // サウンドアンロード
             Ton.Sound.UnloadAll();
 
-            // 終了処理終了
             Ton.Log.Info("Scene " + this.GetType().Name + " Terminated.");
         }
 
         public void Update(GameTime gameTime)
         {
-            // メニューオープン
+            // ConfigMenuを開く
             if (Ton.Input.IsJustPressed("B"))
             {
                 Ton.ConfigMenu.Open();
                 return;
             }
 
-            // Rボタン押下時間更新
+            // R長押しで次シーンへ
             if (Ton.Input.IsPressed("R"))
             {
-                fHoldRButton += (float)gameTime.ElapsedGameTime.TotalSeconds;
-                if (fHoldRButton >= 1.0f)
+                _holdRButton += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                if (_holdRButton >= 1.0f)
                 {
-                    // Rボタンを1秒以上押していたら次のシーンへ移動(フェードアウト・フェードイン時間を指定可能)
                     Ton.Scene.Change(new SampleScene09(), 0.5f, 0.5f, Color.Red);
                 }
             }
             else
             {
-                fHoldRButton = 0.0f;
+                _holdRButton = 0.0f;
             }
 
-            // データ操作
-            if (Ton.Input.IsJustPressed("A"))
-            {
-                _data.Counter++;
-                _data.Message = "Hello:" + (_random.NextDouble() * 1000.0).ToString();
-                _statusMessage = "Made Data.";
-            }
-            
-            if (Ton.Input.IsPressed("Right")) _data.PlayerX += 10f;
-            if (Ton.Input.IsPressed("Left")) _data.PlayerX -= 10f;
-
-            // セーブ
+            // SE再生テスト
             if (Ton.Input.IsJustPressed("X"))
             {
-                Ton.Storage.Save(SAVE_FILE_NAME, _data);
-                _statusMessage = "Data Saved.";
+                Ton.Sound.PlaySE("coin");
+                _sePlayCount++;
+                _statusMessage = "SE played.";
             }
 
-            // ロード
+            // BGM再生/停止テスト
             if (Ton.Input.IsJustPressed("Y"))
             {
-                var loaded = Ton.Storage.Load<TestSaveData>(SAVE_FILE_NAME);
-                if (loaded != null)
+                if (Ton.Sound.IsBGMPlaying())
                 {
-                    _data = loaded;
-                    _statusMessage = "Data Loaded.";
+                    Ton.Sound.StopBGM(0.2f);
+                    _statusMessage = "BGM stopped.";
                 }
                 else
                 {
-                    _statusMessage = "Load Failed (No File?)";
+                    Ton.Sound.PlayBGM("tutorial", 0.2f, 1.0f);
+                    _statusMessage = "BGM resumed.";
                 }
             }
 
+            // 手動ミュートAPI検証
+            if (Ton.Input.IsJustPressed("A"))
+            {
+                Ton.Sound.SetSEMuted(!Ton.Sound.IsSEMuted());
+                _statusMessage = "SE manual mute toggled.";
+            }
+            if (Ton.Input.IsJustPressed("L"))
+            {
+                Ton.Sound.SetBGMMuted(!Ton.Sound.IsBGMMuted());
+                _statusMessage = "BGM manual mute toggled.";
+            }
         }
 
         public void Draw()
         {
             Ton.Gra.Clear(Color.DarkSlateBlue);
 
-            // 情報表示
-            int y = 50;
-            Ton.Gra.DrawText("Eight Scene: Storage & Config Test", 50, y, 0.7f);
+            int y = 40;
+            Ton.Gra.DrawText("Eight Scene: TonConfigMenu Test", 40, y, 0.8f);
             y += 40;
-            Ton.Gra.DrawText($"Status: {_statusMessage}", 50, y, Color.Yellow, 0.7f);
-            y += 40;
-            
-            Ton.Gra.DrawText("--- Current Data ---", 50, y, Color.Cyan, 0.7f);
-            y += 30;
-            Ton.Gra.DrawText($"Counter: {_data.Counter}", 70, y, 0.7f);
-            y += 30;
-            Ton.Gra.DrawText($"PlayerX: {_data.PlayerX:F1}", 70, y, 0.7f);
-            y += 30;
-            Ton.Gra.DrawText($"Message: {_data.Message}", 70, y, 0.7f);
-            y += 50;
 
-            // 操作説明
-            Ton.Gra.DrawText("[A] Inc Counter  [Left/Right] Change X", 50, 400, 0.7f);
-            Ton.Gra.DrawText("[X] Save Data    [Y] Load Data", 50, 440, 0.7f);
-            Ton.Gra.DrawText("[B] Open Config Menu", 50, 480, 0.7f);
+            Ton.Gra.DrawText($"Status: {_statusMessage}", 40, y, Color.Yellow, 0.65f);
+            y += 30;
 
-            // コンフィグメニュー描画（最前面）
-            if (Ton.ConfigMenu.IsOpen())
+            var activityState = Ton.Game.GetWindowActivityState();
+            Ton.Gra.DrawText($"Window State: {GetWindowStateLabel(activityState)}", 40, y, Color.Cyan, 0.65f);
+            y += 30;
+            Ton.Gra.DrawText($"Master Volume: {(int)(Ton.Sound.GetMasterVolume() * 100)}%", 40, y, Color.White, 0.65f);
+            y += 30;
+            Ton.Gra.DrawText($"Mute In Background: {(Ton.Sound.GetMuteWhenInactive() ? "ON" : "OFF")}", 40, y, Color.White, 0.65f);
+            y += 30;
+            Ton.Gra.DrawText($"BGM Playing: {(Ton.Sound.IsBGMPlaying() ? "YES" : "NO")}", 40, y, Color.White, 0.65f);
+            y += 30;
+            Ton.Gra.DrawText($"BGM Manual Mute: {(Ton.Sound.IsBGMMuted() ? "ON" : "OFF")}", 40, y, Color.White, 0.65f);
+            y += 30;
+            Ton.Gra.DrawText($"SE Manual Mute: {(Ton.Sound.IsSEMuted() ? "ON" : "OFF")}", 40, y, Color.White, 0.65f);
+            y += 30;
+            Ton.Gra.DrawText($"SE Played Count: {_sePlayCount}", 40, y, Color.White, 0.65f);
+
+            Ton.Gra.DrawText("--- How To Test ---", 40, 360, Color.Cyan, 0.7f);
+            Ton.Gra.DrawText("[B] Open Config Menu", 40, 400, 0.65f);
+            Ton.Gra.DrawText("[X] Play SE (coin)   [Y] Toggle BGM Play/Stop", 40, 430, 0.65f);
+            Ton.Gra.DrawText("[A] Toggle SE Manual Mute   [L] Toggle BGM Manual Mute", 40, 460, 0.65f);
+            Ton.Gra.DrawText("Set 'Mute In Background' ON in Config, then Alt+Tab to verify mute.", 40, 500, 0.65f);
+
+            Ton.Gra.DrawText("Hold the R button (Next Scene)", 700 - (int)(_holdRButton * 400.0f), 620, 0.6f + (_holdRButton));
+        }
+
+        /// <summary>
+        /// ウィンドウ状態enumを画面表示用文字列に変換します。
+        /// </summary>
+        /// <param name="state">ウィンドウ状態</param>
+        /// <returns>表示用文字列</returns>
+        private string GetWindowStateLabel(TonWindowActivityState state)
+        {
+            switch (state)
             {
-                Ton.ConfigMenu.Draw();
+                case TonWindowActivityState.Active:
+                    return "Active";
+                case TonWindowActivityState.JustActivated:
+                    return "JustActivated";
+                case TonWindowActivityState.Inactive:
+                    return "Inactive";
+                case TonWindowActivityState.JustDeactivated:
+                    return "JustDeactivated";
+                default:
+                    return "Unknown";
             }
-
-            // 次のシーンへ
-            Ton.Gra.DrawText("Hold the R button (Next Scene)", 700 - (int)(fHoldRButton * 400.0f), 600, 0.6f + (fHoldRButton));
         }
     }
 }
