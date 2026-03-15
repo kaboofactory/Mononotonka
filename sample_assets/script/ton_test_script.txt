@@ -41,14 +41,22 @@
 [se:jump,0.8]ジャンプSEもOKだ。[wait:500]
 [bgmstop:1.2]最後はフェードでBGM停止！[next]
 
-最後に、イベント機能のテストだ。
-[speed:500][event:event1][color:SkyBlue]上にイベント受信ってでてきたら成功だ。[reset]
+次にイベント機能のテストだ。
+[speed:100][event:event1][color:SkyBlue]上にイベント受信ってでてきたら成功だ。[reset]
 ユーザー定義のイベントはプログラム側でGetEvent()を呼べ！[next]
 
-それじゃ、またな[icon:heart]
+それじゃ、次のテストだ[icon:heart]
 あ、そうそう、もちろん強制ページ送りも可能だ！[next:1000]
 
 このように[next:1000]
+
+これは日本語の自動改行テストだ！！ウィンドウ幅に合わせて折り返されても、句読点がなるべく行頭に出ないかを確認してくれにゃ。どう？[next]
+
+This is a basic line break test for Token Aware mode. English words should wrap at spaces when possible.[next]
+
+This is a tag-aware test. Hello[color:Orange] brave[reset] new[color:Cyan] world should still feel like a normal[reset] sentence when it wraps.[next]
+
+SuperLongWordSuperLongWordSuperLongWordSuperLongWordSuperLongWordSuperLongWord のような長い語がある場合でも、書けるところまで表示してから次の行へ送られるかを見てくれにゃ。[next]
 
 というわけで基本的な機能は紹介したぜ！またな！[end]
 

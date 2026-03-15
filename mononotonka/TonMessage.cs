@@ -7,6 +7,22 @@ using Microsoft.Xna.Framework;
 namespace Mononotonka
 {
     /// <summary>
+    /// メッセージ表示時の改行制御モードを表します。
+    /// </summary>
+    public enum MessageLineBreakMode
+    {
+        /// <summary>
+        /// 文字単位で折り返します。
+        /// </summary>
+        Character,
+
+        /// <summary>
+        /// 語や句読点を考慮して折り返します。
+        /// </summary>
+        TokenAware
+    }
+
+    /// <summary>
     /// メッセージウィンドウ管理クラス。
     /// テキストの表示、演出制御（コマンドタグ）、ウィンドウ描画を行います。
     /// </summary>
@@ -38,6 +54,25 @@ namespace Mononotonka
             public bool Visible = false;
         }
 
+        /// <summary>
+        /// 先読み時に使用するレイアウト用スタイル状態です。
+        /// </summary>
+        private struct WrapLayoutState
+        {
+            public float Scale;
+            public string FontId;
+        }
+
+        /// <summary>
+        /// 折り返し先読みの結果です。
+        /// </summary>
+        private struct WrapLookaheadResult
+        {
+            public float PreferredWidth;
+            public bool AllowBreakBefore;
+            public bool SkipCurrentTextAfterWrap;
+        }
+
         // ウィンドウ領域
         private Rectangle _windowRect;
         
@@ -53,6 +88,9 @@ namespace Mononotonka
         private float _forceNextWaitTimer = 0f; // 強制ページ送りのタイマー
         private float _defaultScale = 1.0f;
         private float _defaultCharSpeed = 50f; // デフォルトの文字送り速度
+        private MessageLineBreakMode _lineBreakMode = MessageLineBreakMode.TokenAware;
+
+        private const string LineHeadProhibitedCharacters = "、。，．,.;:!?)]}）］｝】』」〕〉》〙〗'\"’”";
 
 
         /// <summary>
@@ -78,6 +116,15 @@ namespace Mononotonka
             // 現在の速度も更新（ただしスクリプト実行中でタグによる上書きがある場合は注意だが、
             // 基本設定の変更という意味で即時反映させておく）
             _charSpeed = speedMs;
+        }
+
+        /// <summary>
+        /// 自動改行時の折り返しモードを設定します。
+        /// </summary>
+        /// <param name="mode">改行制御モード</param>
+        public void SetLineBreakMode(MessageLineBreakMode mode)
+        {
+            _lineBreakMode = mode;
         }
 
         /// <summary>
@@ -480,6 +527,13 @@ namespace Mononotonka
                         float charWidth = size.X * _currentScale;
                         float charHeight = size.Y * _currentScale;
 
+                        // 文字を置く前に、必要なら自動改行する
+                        // 折り返し起点の単一半角スペースだけは行頭へ残さず吸収する
+                        if (EnsureAutoLineBreakForText(charStr))
+                        {
+                            continue;
+                        }
+
                         // 行の最大高さを更新
                         _currentLineMaxHeight = Math.Max(_currentLineMaxHeight, charHeight);
 
@@ -505,22 +559,7 @@ namespace Mononotonka
                     break;
 
                 case CmdType.NewLine:
-                    _cursorX = _windowRect.X; // X初期位置をリセット
-                    
-                    // 行送り (動的計算)
-                    // 現在の行の最大高さが0の場合（空行など）、フォントの標準高さを使用
-                    float lineHeight = _currentLineMaxHeight;
-                    if (lineHeight <= 0)
-                    {
-                        // フォントIDに応じた標準高さを取得（暫定的に"A"で計測）
-                        lineHeight = Ton.Gra.MeasureString("A", _currentFontId).Y * _currentScale;
-                    }
-                    
-                    _cursorY += lineHeight + _lineSpacing;
-                    _currentLineMaxHeight = 0f; // 次の行のためにリセット
-                    
-                    // 改行は一瞬で行うため、非即時モードでもウェイト消費なしとするか、1文字分待つか
-                     if (!instant) _timer = 0; // 1文字分の時間を消費
+                    MoveCursorToNextLine(!instant);
                     break;
 
                 case CmdType.SetSize:
@@ -582,6 +621,9 @@ namespace Mononotonka
                         iconW = tex.Width;
                         iconH = tex.Height;
                     }
+
+                    // アイコンを置く前に、必要なら自動改行する
+                    EnsureAutoLineBreakForIcon(iconW);
 
                     // 行の最大高さを更新
                     _currentLineMaxHeight = Math.Max(_currentLineMaxHeight, iconH);
@@ -649,6 +691,30 @@ namespace Mononotonka
             }
         }
 
+        /// <summary>
+        /// 明示改行または自動改行でカーソルを次の行へ移動します。
+        /// </summary>
+        /// <param name="consumeTime">改行で文字送り時間を消費するかどうか</param>
+        private void MoveCursorToNextLine(bool consumeTime)
+        {
+            _cursorX = _windowRect.X;
+
+            // 現在行に何も描かれていない場合でも、標準文字高で行送りできるようにする
+            float lineHeight = _currentLineMaxHeight;
+            if (lineHeight <= 0)
+            {
+                lineHeight = Ton.Gra.MeasureString("A", _currentFontId).Y * _currentScale;
+            }
+
+            _cursorY += lineHeight + _lineSpacing;
+            _currentLineMaxHeight = 0f;
+
+            if (consumeTime)
+            {
+                _timer = 0;
+            }
+        }
+
         private void ResetStyle(bool fullReset = true)
         {
             _currentScale = _defaultScale;
@@ -664,6 +730,600 @@ namespace Mononotonka
             {
                 _isInputEnabled = true;
             }
+        }
+
+        /// <summary>
+        /// テキスト描画前に必要なら自動改行を行います。
+        /// </summary>
+        /// <param name="text">これから描画する文字列</param>
+        private bool EnsureAutoLineBreakForText(string text)
+        {
+            if (string.IsNullOrEmpty(text) || IsAtLineStart())
+            {
+                return false;
+            }
+
+            WrapLookaheadResult lookahead = GetWrapLookaheadForText(text);
+            if (!lookahead.AllowBreakBefore || lookahead.PreferredWidth <= 0f)
+            {
+                return false;
+            }
+
+            float remainingWidth = _windowRect.Right - _cursorX;
+            if (lookahead.PreferredWidth > remainingWidth)
+            {
+                MoveCursorToNextLine(false);
+                return lookahead.SkipCurrentTextAfterWrap;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// アイコン描画前に必要なら自動改行を行います。
+        /// </summary>
+        /// <param name="iconWidth">アイコン幅</param>
+        private void EnsureAutoLineBreakForIcon(int iconWidth)
+        {
+            if (iconWidth <= 0 || IsAtLineStart())
+            {
+                return;
+            }
+
+            float remainingWidth = _windowRect.Right - _cursorX;
+            if (iconWidth > remainingWidth)
+            {
+                MoveCursorToNextLine(false);
+            }
+        }
+
+        /// <summary>
+        /// 現在の文字に対して、折り返し判定で使う優先幅を取得します。
+        /// </summary>
+        /// <param name="text">現在の文字列</param>
+        /// <returns>折り返し判定用の幅</returns>
+        private WrapLookaheadResult GetWrapLookaheadForText(string text)
+        {
+            WrapLayoutState state = CreateCurrentWrapLayoutState();
+            float currentWidth = MeasureTextWidth(text, state.Scale, state.FontId);
+            WrapLookaheadResult result = new WrapLookaheadResult
+            {
+                PreferredWidth = currentWidth,
+                AllowBreakBefore = true,
+                SkipCurrentTextAfterWrap = false
+            };
+
+            if (_lineBreakMode != MessageLineBreakMode.TokenAware)
+            {
+                return result;
+            }
+
+            if (!TryGetSingleTextCharacter(text, out char currentChar))
+            {
+                return result;
+            }
+
+            if (IsLineHeadProhibitedCharacter(currentChar))
+            {
+                result.AllowBreakBefore = false;
+                return result;
+            }
+
+            if (IsHalfWidthSpace(currentChar))
+            {
+                return BuildSingleSpaceWrapLookahead(currentWidth, state);
+            }
+
+            if (!IsWordTokenCharacter(currentChar))
+            {
+                return result;
+            }
+
+            // 長い語の途中で再度語単位保護へ戻ると、行末に余白を残したまま改行しやすくなります。
+            // 語単位保護は語頭でだけ適用し、途中に入ったら文字単位折り返しを維持します。
+            if (!IsWordTokenStart())
+            {
+                return result;
+            }
+
+            int index = _commandIndex;
+            WrapLayoutState lookaheadState = state;
+            float preferredWidth = currentWidth;
+
+            // 語の途中で改行しにくくするため、後続の語文字を同一候補へ含めます。
+            preferredWidth = CollectWordTokenWidth(preferredWidth, ref index, ref lookaheadState);
+            // 句読点や閉じ記号が行頭に来にくいよう、語の後続禁則文字も含めます。
+            preferredWidth = CollectLineHeadProhibitedWidth(preferredWidth, ref index, ref lookaheadState);
+
+            // ひとまとまり全体が1行へ収まらない場合は、語単位保護を諦めて文字単位で折り返します。
+            if (preferredWidth > _windowRect.Width)
+            {
+                result.PreferredWidth = currentWidth;
+                return result;
+            }
+
+            result.PreferredWidth = preferredWidth;
+            return result;
+        }
+
+        /// <summary>
+        /// 単一半角スペース用の折り返し先読み結果を構築します。
+        /// </summary>
+        /// <param name="currentWidth">現在のスペース幅</param>
+        /// <param name="state">現在スタイル</param>
+        /// <returns>折り返し先読み結果</returns>
+        private WrapLookaheadResult BuildSingleSpaceWrapLookahead(float currentWidth, WrapLayoutState state)
+        {
+            int index = _commandIndex;
+            WrapLayoutState lookaheadState = state;
+            WrapLookaheadResult result = new WrapLookaheadResult
+            {
+                PreferredWidth = currentWidth,
+                AllowBreakBefore = true,
+                SkipCurrentTextAfterWrap = false
+            };
+
+            // 単一半角スペースだけを吸収対象にし、連続スペースは意図的な整形として保持します。
+            if (!TryMeasureNextDisplayClusterWidth(ref index, ref lookaheadState, out float nextClusterWidth, out bool startsWithHalfWidthSpace))
+            {
+                return result;
+            }
+
+            if (startsWithHalfWidthSpace)
+            {
+                return result;
+            }
+
+            result.PreferredWidth = AppendDisplayWidth(currentWidth, nextClusterWidth);
+            result.SkipCurrentTextAfterWrap = true;
+            return result;
+        }
+
+        /// <summary>
+        /// 後続する語文字列の幅を収集します。
+        /// </summary>
+        /// <param name="baseWidth">現在までの幅</param>
+        /// <param name="index">先読みインデックス</param>
+        /// <param name="state">仮想スタイル状態</param>
+        /// <returns>収集後の幅</returns>
+        private float CollectWordTokenWidth(float baseWidth, ref int index, ref WrapLayoutState state)
+        {
+            float width = baseWidth;
+
+            while (index < _commands.Count)
+            {
+                MessageCommand command = _commands[index];
+                if (TryApplyLookaheadLayoutCommand(command, ref state))
+                {
+                    index++;
+                    continue;
+                }
+
+                if (IsLookaheadSkippableCommand(command.Type))
+                {
+                    index++;
+                    continue;
+                }
+
+                if (!TryGetSingleTextCharacter(command, out char nextChar) || !IsWordTokenCharacter(nextChar))
+                {
+                    break;
+                }
+
+                width = AppendDisplayWidth(width, MeasureTextWidth(command.StringValue, state.Scale, state.FontId));
+                index++;
+            }
+
+            return width;
+        }
+
+        /// <summary>
+        /// 後続する行頭禁則文字列の幅を収集します。
+        /// </summary>
+        /// <param name="baseWidth">現在までの幅</param>
+        /// <param name="index">先読みインデックス</param>
+        /// <param name="state">仮想スタイル状態</param>
+        /// <returns>収集後の幅</returns>
+        private float CollectLineHeadProhibitedWidth(float baseWidth, ref int index, ref WrapLayoutState state)
+        {
+            float width = baseWidth;
+
+            while (index < _commands.Count)
+            {
+                MessageCommand command = _commands[index];
+                if (TryApplyLookaheadLayoutCommand(command, ref state))
+                {
+                    index++;
+                    continue;
+                }
+
+                if (IsLookaheadSkippableCommand(command.Type))
+                {
+                    index++;
+                    continue;
+                }
+
+                if (!TryGetSingleTextCharacter(command, out char nextChar) || !IsLineHeadProhibitedCharacter(nextChar))
+                {
+                    break;
+                }
+
+                width = AppendDisplayWidth(width, MeasureTextWidth(command.StringValue, state.Scale, state.FontId));
+                index++;
+            }
+
+            return width;
+        }
+
+        /// <summary>
+        /// 次の表示単位の幅を測定します。
+        /// </summary>
+        /// <param name="index">先読みインデックス</param>
+        /// <param name="state">仮想スタイル状態</param>
+        /// <param name="width">測定された幅</param>
+        /// <param name="startsWithHalfWidthSpace">次の表示単位が半角スペースで始まるかどうか</param>
+        /// <returns>表示単位を取得できた場合は true</returns>
+        private bool TryMeasureNextDisplayClusterWidth(ref int index, ref WrapLayoutState state, out float width, out bool startsWithHalfWidthSpace)
+        {
+            width = 0f;
+            startsWithHalfWidthSpace = false;
+
+            while (index < _commands.Count)
+            {
+                MessageCommand command = _commands[index];
+                if (TryApplyLookaheadLayoutCommand(command, ref state))
+                {
+                    index++;
+                    continue;
+                }
+
+                if (IsLookaheadSkippableCommand(command.Type))
+                {
+                    index++;
+                    continue;
+                }
+
+                if (TryGetSingleTextCharacter(command, out char nextChar))
+                {
+                    startsWithHalfWidthSpace = IsHalfWidthSpace(nextChar);
+                    if (startsWithHalfWidthSpace)
+                    {
+                        return false;
+                    }
+
+                    width = MeasureTextWidth(command.StringValue, state.Scale, state.FontId);
+                    index++;
+
+                    if (IsWordTokenCharacter(nextChar))
+                    {
+                        width = CollectWordTokenWidth(width, ref index, ref state);
+                        width = CollectLineHeadProhibitedWidth(width, ref index, ref state);
+                    }
+                    else if (IsLineHeadProhibitedCharacter(nextChar))
+                    {
+                        width = CollectLineHeadProhibitedWidth(width, ref index, ref state);
+                    }
+
+                    return true;
+                }
+
+                if (command.Type == CmdType.Icon)
+                {
+                    width = GetIconWidth(command.StringValue);
+                    index++;
+                    return true;
+                }
+
+                if (DoesLookaheadBreakFlow(command.Type))
+                {
+                    return false;
+                }
+
+                index++;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 現在カーソルが行頭にあるかどうかを返します。
+        /// </summary>
+        /// <returns>行頭にある場合は true</returns>
+        private bool IsAtLineStart()
+        {
+            return _cursorX <= _windowRect.X + 0.01f;
+        }
+
+        /// <summary>
+        /// 指定文字列の描画幅を測定します。
+        /// </summary>
+        /// <param name="text">測定対象文字列</param>
+        /// <returns>描画幅</returns>
+        private float MeasureTextWidth(string text)
+        {
+            return MeasureTextWidth(text, _currentScale, _currentFontId);
+        }
+
+        /// <summary>
+        /// 指定スタイルで文字列の描画幅を測定します。
+        /// </summary>
+        /// <param name="text">測定対象文字列</param>
+        /// <param name="scale">スケール</param>
+        /// <param name="fontId">フォントID</param>
+        /// <returns>描画幅</returns>
+        private float MeasureTextWidth(string text, float scale, string fontId)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return 0f;
+            }
+
+            float width = 0f;
+            bool isFirst = true;
+            foreach (char c in text)
+            {
+                string charStr = c.ToString();
+                Vector2 size = Ton.Gra.MeasureString(charStr, fontId);
+                width += size.X * scale;
+                if (!isFirst)
+                {
+                    width += _kerningOffset;
+                }
+
+                isFirst = false;
+            }
+
+            return width;
+        }
+
+        /// <summary>
+        /// 現在の描画スタイルから先読み用スタイル状態を生成します。
+        /// </summary>
+        /// <returns>先読み用スタイル状態</returns>
+        private WrapLayoutState CreateCurrentWrapLayoutState()
+        {
+            return new WrapLayoutState
+            {
+                Scale = _currentScale,
+                FontId = _currentFontId
+            };
+        }
+
+        /// <summary>
+        /// 先読み中に幅へ影響するコマンドを仮想スタイルへ反映します。
+        /// </summary>
+        /// <param name="command">先読み対象コマンド</param>
+        /// <param name="state">仮想スタイル状態</param>
+        /// <returns>幅へ影響するコマンドを処理した場合は true</returns>
+        private bool TryApplyLookaheadLayoutCommand(MessageCommand command, ref WrapLayoutState state)
+        {
+            switch (command.Type)
+            {
+                case CmdType.SetSize:
+                    state.Scale = command.IntValue / 24f;
+                    return true;
+                case CmdType.SetFont:
+                    if (string.IsNullOrEmpty(command.StringValue))
+                    {
+                        state.FontId = null;
+                    }
+                    else if (Ton.Gra.HasFont(command.StringValue))
+                    {
+                        state.FontId = command.StringValue;
+                    }
+                    return true;
+                case CmdType.Reset:
+                    state.Scale = _defaultScale;
+                    state.FontId = null;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// 先読み中に表示を分断しないコマンドかどうかを判定します。
+        /// </summary>
+        /// <param name="type">コマンド種別</param>
+        /// <returns>表示を分断しない場合は true</returns>
+        private bool IsLookaheadSkippableCommand(CmdType type)
+        {
+            switch (type)
+            {
+                case CmdType.SetColor:
+                case CmdType.SetSpeed:
+                case CmdType.SetRotate:
+                case CmdType.SetShake:
+                case CmdType.Wait:
+                case CmdType.Event:
+                case CmdType.Input:
+                case CmdType.PlayBgm:
+                case CmdType.StopBgm:
+                case CmdType.PlaySe:
+                case CmdType.ScreenShake:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// 先読みを打ち切るコマンドかどうかを判定します。
+        /// </summary>
+        /// <param name="type">コマンド種別</param>
+        /// <returns>先読みを打ち切る場合は true</returns>
+        private bool DoesLookaheadBreakFlow(CmdType type)
+        {
+            switch (type)
+            {
+                case CmdType.NewLine:
+                case CmdType.Next:
+                case CmdType.End:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// 表示要素の幅を追加します。
+        /// </summary>
+        /// <param name="baseWidth">現在までの幅</param>
+        /// <param name="displayWidth">追加する表示幅</param>
+        /// <returns>追加後の幅</returns>
+        private float AppendDisplayWidth(float baseWidth, float displayWidth)
+        {
+            if (displayWidth <= 0f)
+            {
+                return baseWidth;
+            }
+
+            if (baseWidth > 0f)
+            {
+                baseWidth += _kerningOffset;
+            }
+
+            return baseWidth + displayWidth;
+        }
+
+        /// <summary>
+        /// アイコンの描画幅を取得します。
+        /// </summary>
+        /// <param name="iconName">アイコン名</param>
+        /// <returns>描画幅</returns>
+        private float GetIconWidth(string iconName)
+        {
+            var tex = Ton.Gra.LoadTexture(iconName, iconName);
+            if (tex != null)
+            {
+                return tex.Width;
+            }
+
+            return 40f;
+        }
+
+        /// <summary>
+        /// テキストコマンドが単一文字を表しているかどうかを判定します。
+        /// </summary>
+        /// <param name="command">判定対象コマンド</param>
+        /// <param name="textChar">取得した文字</param>
+        /// <returns>単一文字を取得できた場合は true</returns>
+        private bool TryGetSingleTextCharacter(MessageCommand command, out char textChar)
+        {
+            textChar = '\0';
+            if (command == null || command.Type != CmdType.Text || !TryGetSingleTextCharacter(command.StringValue, out textChar))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 文字列が単一文字かどうかを判定します。
+        /// </summary>
+        /// <param name="text">判定対象文字列</param>
+        /// <param name="textChar">取得した文字</param>
+        /// <returns>単一文字を取得できた場合は true</returns>
+        private bool TryGetSingleTextCharacter(string text, out char textChar)
+        {
+            textChar = '\0';
+            if (string.IsNullOrEmpty(text) || text.Length != 1)
+            {
+                return false;
+            }
+
+            textChar = text[0];
+            return true;
+        }
+
+        /// <summary>
+        /// 半角スペースかどうかを判定します。
+        /// </summary>
+        /// <param name="c">判定対象文字</param>
+        /// <returns>半角スペースの場合は true</returns>
+        private bool IsHalfWidthSpace(char c)
+        {
+            return c == ' ';
+        }
+
+        /// <summary>
+        /// 現在文字が語頭かどうかを判定します。
+        /// </summary>
+        /// <returns>語頭の場合は true</returns>
+        private bool IsWordTokenStart()
+        {
+            int index = _commandIndex - 2;
+            while (index >= 0)
+            {
+                MessageCommand command = _commands[index];
+                if (TryGetSingleTextCharacter(command, out char previousChar))
+                {
+                    return !IsWordTokenCharacter(previousChar);
+                }
+
+                if (command.Type == CmdType.Icon || DoesLookaheadBreakFlow(command.Type))
+                {
+                    return true;
+                }
+
+                index--;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 語としてまとめる対象文字かどうかを判定します。
+        /// </summary>
+        /// <param name="c">判定対象文字</param>
+        /// <returns>語文字なら true</returns>
+        private bool IsWordTokenCharacter(char c)
+        {
+            if (IsCjkOrKana(c))
+            {
+                return false;
+            }
+
+            if (char.IsLetterOrDigit(c))
+            {
+                return true;
+            }
+
+            switch (c)
+            {
+                case '_':
+                case '-':
+                case '\'':
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// 行頭に出したくない文字かどうかを判定します。
+        /// </summary>
+        /// <param name="c">判定対象文字</param>
+        /// <returns>行頭禁則文字なら true</returns>
+        private bool IsLineHeadProhibitedCharacter(char c)
+        {
+            return LineHeadProhibitedCharacters.IndexOf(c) >= 0;
+        }
+
+        /// <summary>
+        /// CJK やかな文字に該当するかどうかを判定します。
+        /// </summary>
+        /// <param name="c">判定対象文字</param>
+        /// <returns>CJK やかな文字の場合は true</returns>
+        private bool IsCjkOrKana(char c)
+        {
+            return
+                (c >= '\u3040' && c <= '\u30ff') ||
+                (c >= '\u3400' && c <= '\u4dbf') ||
+                (c >= '\u4e00' && c <= '\u9fff') ||
+                (c >= '\uf900' && c <= '\ufaff') ||
+                (c >= '\uff66' && c <= '\uff9f');
         }
 
         /// <summary>

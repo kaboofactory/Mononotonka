@@ -40,6 +40,7 @@ namespace Mononotonka
 
             // メッセージウィンドウのフォントサイズを設定
             Ton.Msg.SetTextStyle(0.7f);
+            Ton.Msg.SetLineBreakMode(MessageLineBreakMode.TokenAware);
 
             // 入力待ちアイコンの設定テスト
             Ton.Msg.SetInputWaitingIcon("heart");

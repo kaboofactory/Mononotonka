@@ -56,6 +56,14 @@
             <p>文字の基本サイズ、行間の高さ(px)、文字間隔のオフセット(px)を設定します。</p>
         </div>
         <div class="card">
+            <div class="method-sig">void SetLineBreakMode(MessageLineBreakMode mode)</div>
+            <p>自動改行時の折り返しモードを設定します。既定値は <code>MessageLineBreakMode.TokenAware</code> です。</p>
+            <ul>
+                <li><code>MessageLineBreakMode.TokenAware</code>: 語や句読点を考慮して折り返します。</li>
+                <li><code>MessageLineBreakMode.Character</code>: 文字単位で単純に折り返します。</li>
+            </ul>
+        </div>
+        <div class="card">
             <div class="method-sig">void Update(GameTime gameTime, bool isInput = false)</div>
             <p>メッセージの文字送り処理や待機時間の更新を行います。毎フレーム呼び出してください。</p>
             <ul>
@@ -117,6 +125,7 @@
         <pre><code>// In Initialize()
 // Set position and size
 Ton.Msg.SetWindowRect(20, 400, 600, 150);
+Ton.Msg.SetLineBreakMode(MessageLineBreakMode.TokenAware);
 Ton.Msg.SetVariable("Exp", "1200");
 
 // Show Message Script
@@ -161,6 +170,8 @@ if (Ton.Msg.IsBusy())
         <h3>改行と空行の扱い</h3>
         <ul>
             <li>改行コードは通常テキスト行の改行として扱われます。</li>
+            <li>ウィンドウ幅を超える場合は自動改行されます。既定では <code>MessageLineBreakMode.TokenAware</code> が使用され、語や句読点を考慮して折り返します。</li>
+            <li><code>SetLineBreakMode(MessageLineBreakMode.Character)</code> を指定すると、禁則を考慮しない単純な文字単位折り返しになります。</li>
             <li>空行（改行コードのみの行）は表示上の空行としては扱われず、無視されます。</li>
             <li>表示上の空行を入れたい場合は <code>[blankline]</code> を使用します。</li>
             <li><code>;</code> で始まる行はコメント行として完全に無視されます（表示にも改行カウントにも入りません）。</li>
@@ -180,6 +191,7 @@ if (Ton.Msg.IsBusy())
         <h2>Sample Code</h2>
         <pre><code>// Initialize
 Ton.Msg.Initialize();
+Ton.Msg.SetLineBreakMode(MessageLineBreakMode.TokenAware);
 Ton.Msg.SetVariable("Exp", "1200");
 
 // Load script from file (Play "Opening" section)
