@@ -64,6 +64,16 @@
             </ul>
         </div>
         <div class="card">
+            <div class="method-sig">void SetVerticalOverflowBehavior(MessageVerticalOverflowMode mode, int autoNextWaitMs = 0)</div>
+            <p>縦方向の描画範囲を超えたときの挙動を設定します。既定値は <code>MessageVerticalOverflowMode.ForceNext</code> です。</p>
+            <ul>
+                <li><code>MessageVerticalOverflowMode.Ignore</code>: はみ出してもそのまま下へ描画します。</li>
+                <li><code>MessageVerticalOverflowMode.ForceNext</code>: 強制的に入力待ち状態へ入り、ページ送りを待ちます。</li>
+                <li><code>MessageVerticalOverflowMode.ForceAutoNext</code>: 強制的に時間指定付き入力待ち状態へ入り、自動でページ送りします。</li>
+                <li><code>autoNextWaitMs</code> が <code>0</code> の場合は自動送りを行わず、実質的に <code>ForceNext</code> 相当の待機になります。</li>
+            </ul>
+        </div>
+        <div class="card">
             <div class="method-sig">void Update(GameTime gameTime, bool isInput = false)</div>
             <p>メッセージの文字送り処理や待機時間の更新を行います。毎フレーム呼び出してください。</p>
             <ul>
@@ -172,6 +182,8 @@ if (Ton.Msg.IsBusy())
             <li>改行コードは通常テキスト行の改行として扱われます。</li>
             <li>ウィンドウ幅を超える場合は自動改行されます。既定では <code>MessageLineBreakMode.TokenAware</code> が使用され、語や句読点を考慮して折り返します。</li>
             <li><code>SetLineBreakMode(MessageLineBreakMode.Character)</code> を指定すると、禁則を考慮しない単純な文字単位折り返しになります。</li>
+            <li>ウィンドウ高さを超えそうな場合は <code>SetVerticalOverflowBehavior</code> の設定に従います。既定では強制 <code>[next]</code> 相当の入力待ちへ入ります。</li>
+            <li>縦方向オーバーフロー判定は救済措置です。次行先頭の実際の描画要素高を厳密には先読みせず、現在スタイル基準でおおまかに判定します。</li>
             <li>空行（改行コードのみの行）は表示上の空行としては扱われず、無視されます。</li>
             <li>表示上の空行を入れたい場合は <code>[blankline]</code> を使用します。</li>
             <li><code>;</code> で始まる行はコメント行として完全に無視されます（表示にも改行カウントにも入りません）。</li>

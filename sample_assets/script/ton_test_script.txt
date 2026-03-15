@@ -58,6 +58,8 @@ This is a tag-aware test. Hello[color:Orange] brave[reset] new[color:Cyan] world
 
 SuperLongWordSuperLongWordSuperLongWordSuperLongWordSuperLongWordSuperLongWord のような長い語がある場合でも、書けるところまで表示してから次の行へ送られるかを見てくれにゃ。[next]
 
+これは長文を自動的に改ページ待ちにするテストにゃこれは長文を自動的に改ページ待ちにするテストにゃこれは長文を自動的に改ページ待ちにするテストにゃこれは長文を自動的に改ページ待ちにするテストにゃこれは長文を自動的に改ページ待ちにするテストにゃこれは長文を自動的に改ページ待ちにするテストにゃこれは長文を自動的に改ページ待ちにするテストにゃこれは長文を自動的に改ページ待ちにするテストにゃこれは長文を自動的に改ページ待ちにするテストにゃこれは長文を自動的に改ページ待ちにするテストにゃ[next]
+
 というわけで基本的な機能は紹介したぜ！またな！[end]
 
 このメッセージは表示されないぜ！！[next]

@@ -23,6 +23,27 @@ namespace Mononotonka
     }
 
     /// <summary>
+    /// メッセージの縦方向描画範囲を超えたときの挙動を表します。
+    /// </summary>
+    public enum MessageVerticalOverflowMode
+    {
+        /// <summary>
+        /// はみ出してもそのまま描画を継続します。
+        /// </summary>
+        Ignore,
+
+        /// <summary>
+        /// 強制的に入力待ちへ入り、ページ送りを待ちます。
+        /// </summary>
+        ForceNext,
+
+        /// <summary>
+        /// 強制的に時間指定付き入力待ちへ入り、自動でページ送りします。
+        /// </summary>
+        ForceAutoNext
+    }
+
+    /// <summary>
     /// メッセージウィンドウ管理クラス。
     /// テキストの表示、演出制御（コマンドタグ）、ウィンドウ描画を行います。
     /// </summary>
@@ -73,6 +94,16 @@ namespace Mononotonka
             public bool SkipCurrentTextAfterWrap;
         }
 
+        /// <summary>
+        /// 自動改行時の現在要素の扱いを表します。
+        /// </summary>
+        private enum AutoLineBreakResult
+        {
+            Continue,
+            SkipCurrent,
+            RetryCurrentCommand
+        }
+
         // ウィンドウ領域
         private Rectangle _windowRect;
         
@@ -89,6 +120,8 @@ namespace Mononotonka
         private float _defaultScale = 1.0f;
         private float _defaultCharSpeed = 50f; // デフォルトの文字送り速度
         private MessageLineBreakMode _lineBreakMode = MessageLineBreakMode.TokenAware;
+        private MessageVerticalOverflowMode _verticalOverflowMode = MessageVerticalOverflowMode.ForceNext;
+        private int _verticalOverflowAutoNextWaitMs = 0;
 
         private const string LineHeadProhibitedCharacters = "、。，．,.;:!?)]}）］｝】』」〕〉》〙〗'\"’”";
 
@@ -125,6 +158,17 @@ namespace Mononotonka
         public void SetLineBreakMode(MessageLineBreakMode mode)
         {
             _lineBreakMode = mode;
+        }
+
+        /// <summary>
+        /// 縦方向の描画範囲を超えたときの挙動を設定します。
+        /// </summary>
+        /// <param name="mode">オーバーフロー時の挙動</param>
+        /// <param name="autoNextWaitMs">自動ページ送り時の待機時間(ms)</param>
+        public void SetVerticalOverflowBehavior(MessageVerticalOverflowMode mode, int autoNextWaitMs = 0)
+        {
+            _verticalOverflowMode = mode;
+            _verticalOverflowAutoNextWaitMs = Math.Max(0, autoNextWaitMs);
         }
 
         /// <summary>
@@ -296,6 +340,9 @@ namespace Mononotonka
             _isScriptEnded = false;
             _commandIndex = 0;
             _timer = 0;
+            _waitTimer = 0;
+            _forceNextWaitTimer = 0;
+            _currentLineMaxHeight = 0f;
             _drawObjects.Clear();
             _eventQueue.Clear();
             
@@ -529,9 +576,17 @@ namespace Mononotonka
 
                         // 文字を置く前に、必要なら自動改行する
                         // 折り返し起点の単一半角スペースだけは行頭へ残さず吸収する
-                        if (EnsureAutoLineBreakForText(charStr))
+                        AutoLineBreakResult textLineBreakResult = EnsureAutoLineBreakForText(charStr);
+                        if (textLineBreakResult == AutoLineBreakResult.SkipCurrent)
                         {
                             continue;
+                        }
+                        if (textLineBreakResult == AutoLineBreakResult.RetryCurrentCommand)
+                        {
+                            // Text コマンドは現状 1 文字単位で構築しているため、
+                            // オーバーフロー時は同じ文字を次ページで再実行させる。
+                            _commandIndex--;
+                            return;
                         }
 
                         // 行の最大高さを更新
@@ -623,7 +678,12 @@ namespace Mononotonka
                     }
 
                     // アイコンを置く前に、必要なら自動改行する
-                    EnsureAutoLineBreakForIcon(iconW);
+                    AutoLineBreakResult iconLineBreakResult = EnsureAutoLineBreakForIcon(iconW);
+                    if (iconLineBreakResult == AutoLineBreakResult.RetryCurrentCommand)
+                    {
+                        _commandIndex--;
+                        return;
+                    }
 
                     // 行の最大高さを更新
                     _currentLineMaxHeight = Math.Max(_currentLineMaxHeight, iconH);
@@ -695,7 +755,8 @@ namespace Mononotonka
         /// 明示改行または自動改行でカーソルを次の行へ移動します。
         /// </summary>
         /// <param name="consumeTime">改行で文字送り時間を消費するかどうか</param>
-        private void MoveCursorToNextLine(bool consumeTime)
+        /// <returns>縦方向オーバーフローによりページ送り待ちへ入った場合は true</returns>
+        private bool MoveCursorToNextLine(bool consumeTime)
         {
             _cursorX = _windowRect.X;
 
@@ -713,6 +774,8 @@ namespace Mononotonka
             {
                 _timer = 0;
             }
+
+            return HandleVerticalOverflowAfterLineAdvance();
         }
 
         private void ResetStyle(bool fullReset = true)
@@ -736,45 +799,105 @@ namespace Mononotonka
         /// テキスト描画前に必要なら自動改行を行います。
         /// </summary>
         /// <param name="text">これから描画する文字列</param>
-        private bool EnsureAutoLineBreakForText(string text)
+        /// <returns>自動改行後の現在文字の扱い</returns>
+        private AutoLineBreakResult EnsureAutoLineBreakForText(string text)
         {
             if (string.IsNullOrEmpty(text) || IsAtLineStart())
             {
-                return false;
+                return AutoLineBreakResult.Continue;
             }
 
             WrapLookaheadResult lookahead = GetWrapLookaheadForText(text);
             if (!lookahead.AllowBreakBefore || lookahead.PreferredWidth <= 0f)
             {
-                return false;
+                return AutoLineBreakResult.Continue;
             }
 
             float remainingWidth = _windowRect.Right - _cursorX;
             if (lookahead.PreferredWidth > remainingWidth)
             {
-                MoveCursorToNextLine(false);
-                return lookahead.SkipCurrentTextAfterWrap;
+                bool isOverflowHandled = MoveCursorToNextLine(false);
+                if (isOverflowHandled)
+                {
+                    return lookahead.SkipCurrentTextAfterWrap ? AutoLineBreakResult.SkipCurrent : AutoLineBreakResult.RetryCurrentCommand;
+                }
+
+                return lookahead.SkipCurrentTextAfterWrap ? AutoLineBreakResult.SkipCurrent : AutoLineBreakResult.Continue;
             }
 
-            return false;
+            return AutoLineBreakResult.Continue;
         }
 
         /// <summary>
         /// アイコン描画前に必要なら自動改行を行います。
         /// </summary>
         /// <param name="iconWidth">アイコン幅</param>
-        private void EnsureAutoLineBreakForIcon(int iconWidth)
+        /// <returns>自動改行後の現在要素の扱い</returns>
+        private AutoLineBreakResult EnsureAutoLineBreakForIcon(int iconWidth)
         {
             if (iconWidth <= 0 || IsAtLineStart())
             {
-                return;
+                return AutoLineBreakResult.Continue;
             }
 
             float remainingWidth = _windowRect.Right - _cursorX;
             if (iconWidth > remainingWidth)
             {
-                MoveCursorToNextLine(false);
+                return MoveCursorToNextLine(false) ? AutoLineBreakResult.RetryCurrentCommand : AutoLineBreakResult.Continue;
             }
+
+            return AutoLineBreakResult.Continue;
+        }
+
+        /// <summary>
+        /// 行送り後に縦方向の描画範囲を超えたかどうかを判定し、必要ならページ送り待ちへ移行します。
+        /// </summary>
+        /// <returns>ページ送り待ちへ移行した場合は true</returns>
+        private bool HandleVerticalOverflowAfterLineAdvance()
+        {
+            if (_verticalOverflowMode == MessageVerticalOverflowMode.Ignore)
+            {
+                return false;
+            }
+
+            float nextLineHeight = GetDefaultLineHeightForCurrentStyle();
+            if (_cursorY + nextLineHeight <= _windowRect.Bottom)
+            {
+                return false;
+            }
+
+            switch (_verticalOverflowMode)
+            {
+                case MessageVerticalOverflowMode.ForceAutoNext:
+                    EnterVerticalOverflowWait(_verticalOverflowAutoNextWaitMs);
+                    return true;
+                case MessageVerticalOverflowMode.ForceNext:
+                default:
+                    EnterVerticalOverflowWait(0);
+                    return true;
+            }
+        }
+
+        /// <summary>
+        /// 現在スタイルにおける標準行高を取得します。
+        /// </summary>
+        /// <returns>標準行高</returns>
+        private float GetDefaultLineHeightForCurrentStyle()
+        {
+            return Ton.Gra.MeasureString("A", _currentFontId).Y * _currentScale;
+        }
+
+        /// <summary>
+        /// 縦方向オーバーフロー用の入力待ち状態へ移行します。
+        /// </summary>
+        /// <param name="waitMs">自動ページ送りまでの待機時間(ms)</param>
+        private void EnterVerticalOverflowWait(int waitMs)
+        {
+            // 現在ページの表示を確定したまま処理だけ止め、次の入力または自動送りを待つ。
+            _waitInput = true;
+            _waitTimer = 0;
+            _timer = 0;
+            _forceNextWaitTimer = Math.Max(0, waitMs);
         }
 
         /// <summary>
