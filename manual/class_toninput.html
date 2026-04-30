@@ -176,6 +176,15 @@
             <p>仮想画面上の解像度に変換されたマウスカーソル座標を取得します。</p>
         </div>
         <div class="card">
+            <div class="method-sig">int GetMouseWheelDelta()</div>
+            <p>前フレームからのマウスホイール差分を取得します。</p>
+            <ul>
+                <li>上方向へ回した場合は正の値、下方向へ回した場合は負の値を返します。</li>
+                <li>ホイール入力がない場合は <code>0</code> を返します。</li>
+                <li>スクロール、ズーム、リスト移動などに使用します。</li>
+            </ul>
+        </div>
+        <div class="card">
             <div class="method-sig">bool IsMousePressed(MouseButton button)</div>
             <p>指定したマウスボタンが押されているか判定します。</p>
             <ul>
@@ -238,6 +247,17 @@ if (dir != Vector2.Zero)
 
 // Get Mouse Position (in Virtual Coordinates)
 Vector2 mousePos = Ton.Input.GetMousePosition();
+
+// Mouse wheel scroll / zoom
+int wheelDelta = Ton.Input.GetMouseWheelDelta();
+if (wheelDelta > 0)
+{
+    camera.ZoomIn();
+}
+else if (wheelDelta < 0)
+{
+    camera.ZoomOut();
+}
 
 // Vibrate Controller for 0.5 seconds
 if (player.IsDamaged)

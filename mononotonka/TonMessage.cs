@@ -75,6 +75,25 @@ namespace Mononotonka
             public bool Visible = false;
         }
 
+        private bool _autoDraw = true;
+
+        /// <summary>
+        /// Ton本体の自動描画でメッセージを描画するか設定します。
+        /// </summary>
+        /// <param name="bAutoDraw">trueならTon本体が自動描画し、falseならユーザーがDrawを呼び出します。</param>
+        public void SetAutoDraw(bool bAutoDraw = true)
+        {
+            _autoDraw = bAutoDraw;
+        }
+
+        /// <summary>
+        /// Ton本体の自動描画で描画してよいかを取得します。
+        /// </summary>
+        public bool IsAutoDrawEnabled()
+        {
+            return _autoDraw;
+        }
+
         /// <summary>
         /// 先読み時に使用するレイアウト用スタイル状態です。
         /// </summary>

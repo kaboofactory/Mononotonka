@@ -56,6 +56,19 @@
             <p>文字の基本サイズ、行間の高さ(px)、文字間隔のオフセット(px)を設定します。</p>
         </div>
         <div class="card">
+            <div class="method-sig">void SetAutoDraw(bool bAutoDraw = true)</div>
+            <p><code>Ton.Instance.Draw(gameTime)</code> 内で <code>Ton.Msg</code> を自動描画するかどうかを設定します。</p>
+            <ul>
+                <li><code>true</code>: 既定値です。通常の描画順で自動的に <code>Ton.Msg.Draw()</code> が呼ばれます。</li>
+                <li><code>false</code>: 自動描画を止めます。仮想画面や独自レイヤーへ描きたい場合は、ユーザー側で <code>Ton.Msg.Draw()</code> を呼び出してください。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">void Draw()</div>
+            <p>現在のメッセージを描画します。<code>SetAutoDraw(false)</code> を指定した場合や、RenderTargetへ描き込みたい場合に手動で呼び出します。</p>
+            <p>描画先は呼び出し時点の <code>Ton.Gra</code> の描画先に従います。仮想画面へ描く場合は、先に <code>Ton.Gra.SetRenderTarget(...)</code> を呼んでください。</p>
+        </div>
+        <div class="card">
             <div class="method-sig">void SetLineBreakMode(MessageLineBreakMode mode)</div>
             <p>自動改行時の折り返しモードを設定します。既定値は <code>MessageLineBreakMode.TokenAware</code> です。</p>
             <ul>
@@ -148,11 +161,18 @@ string script =
     "[event:opt2] Option 2 (No)";
 Ton.Msg.Show(script);
 
+// If you want to draw Ton.Msg into your own render target
+Ton.Msg.SetAutoDraw(false);
 
 // In Update()
 // Advance text on input ("A" button or B button)
 bool isInput = Ton.Input.IsJustPressed("A") || Ton.Input.IsJustPressed("B");
 Ton.Msg.Update(gameTime, isInput); // Don't forget to pass gameTime!
+
+// In Draw()
+Ton.Gra.SetRenderTarget("message_layer");
+Ton.Msg.Draw();
+Ton.Gra.SetRenderTarget();
 
 // Check for Event (Selection)
 string eventId = Ton.Msg.GetEvent();

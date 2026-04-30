@@ -169,7 +169,10 @@ namespace Mononotonka
             particle.Draw();
 
             // メッセージウィンドウの描画
-            msg.Draw();
+            if (msg.IsAutoDrawEnabled())
+            {
+                msg.Draw();
+            }
 
             // 設定メニューの描画
             configmenu.Draw();

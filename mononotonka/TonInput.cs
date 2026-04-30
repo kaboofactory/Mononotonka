@@ -318,6 +318,16 @@ namespace Mononotonka
         }
 
         /// <summary>
+        /// マウスホイールの前フレームからの差分を取得します。
+        /// </summary>
+        /// <returns>ホイール差分。上方向なら正、下方向なら負。</returns>
+        public int GetMouseWheelDelta()
+        {
+            if (_isInputConsumed) return 0;
+            return _currentMouse.ScrollWheelValue - _prevMouse.ScrollWheelValue;
+        }
+
+        /// <summary>
         /// ゲームパッドを振動させます。
         /// </summary>
         /// <param name="seconds">振動時間(秒)</param>
