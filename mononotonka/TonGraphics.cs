@@ -1715,41 +1715,68 @@ namespace Mononotonka
         public void FillRoundedRect(string imageName, int x, int y, int w, int h, int pw, int ph)
         {
             var tex = GetTexture(imageName);
-            // 9スライス実装
-            // 画像を9分割して、四隅はそのまま、上下左右は引き伸ばし、中央を引き伸ばして描画
-            
-            int x1 = x;
-            int x2 = x + pw;
-            int x3 = x + w - pw;
-            
-            int y1 = y;
-            int y2 = y + ph;
-            int y3 = y + h - ph;
-            
-            int cw = w - 2*pw;
-            int ch = h - 2*ph;
+            if (tex == null || w <= 0 || h <= 0)
+            {
+                return;
+            }
 
-            // 9箇所描画
-            // 左上
-            _spriteBatch.Draw(tex, new Rectangle(x1, y1, pw, ph), new Rectangle(0, 0, pw, ph), Color.White);
-            // 上
-            _spriteBatch.Draw(tex, new Rectangle(x2, y1, cw, ph), new Rectangle(pw, 0, pw, ph), Color.White);
-            // 右上
-            _spriteBatch.Draw(tex, new Rectangle(x3, y1, pw, ph), new Rectangle(2*pw, 0, pw, ph), Color.White);
-            
-            // 左中
-            _spriteBatch.Draw(tex, new Rectangle(x1, y2, pw, ch), new Rectangle(0, ph, pw, ph), Color.White);
-            // 中央
-            _spriteBatch.Draw(tex, new Rectangle(x2, y2, cw, ch), new Rectangle(pw, ph, pw, ph), Color.White);
-            // 右中
-            _spriteBatch.Draw(tex, new Rectangle(x3, y2, pw, ch), new Rectangle(2*pw, ph, pw, ph), Color.White);
-            
-            // 左下
-            _spriteBatch.Draw(tex, new Rectangle(x1, y3, pw, ph), new Rectangle(0, 2*ph, pw, ph), Color.White);
-            // 下
-            _spriteBatch.Draw(tex, new Rectangle(x2, y3, cw, ph), new Rectangle(pw, 2*ph, pw, ph), Color.White);
-            // 右下
-            _spriteBatch.Draw(tex, new Rectangle(x3, y3, pw, ph), new Rectangle(2*pw, 2*ph, pw, ph), Color.White);
+            // 角はドットバイドットで描き、辺と中央だけを伸ばす。
+            int srcPw = Math.Min(Math.Max(0, pw), tex.Width / 2);
+            int srcPh = Math.Min(Math.Max(0, ph), tex.Height / 2);
+            if (srcPw <= 0 || srcPh <= 0)
+            {
+                return;
+            }
+
+            int dstPw = Math.Min(srcPw, w / 2);
+            int dstPh = Math.Min(srcPh, h / 2);
+            int dstCenterW = Math.Max(0, w - (dstPw * 2));
+            int dstCenterH = Math.Max(0, h - (dstPh * 2));
+            int srcCenterW = Math.Max(0, tex.Width - (srcPw * 2));
+            int srcCenterH = Math.Max(0, tex.Height - (srcPh * 2));
+
+            int x1 = x;
+            int x2 = x + dstPw;
+            int x3 = x + w - dstPw;
+
+            int y1 = y;
+            int y2 = y + dstPh;
+            int y3 = y + h - dstPh;
+
+            Rectangle srcTopLeft = new Rectangle(0, 0, srcPw, srcPh);
+            Rectangle srcTop = new Rectangle(srcPw, 0, srcCenterW, srcPh);
+            Rectangle srcTopRight = new Rectangle(tex.Width - srcPw, 0, srcPw, srcPh);
+            Rectangle srcLeft = new Rectangle(0, srcPh, srcPw, srcCenterH);
+            Rectangle srcCenter = new Rectangle(srcPw, srcPh, srcCenterW, srcCenterH);
+            Rectangle srcRight = new Rectangle(tex.Width - srcPw, srcPh, srcPw, srcCenterH);
+            Rectangle srcBottomLeft = new Rectangle(0, tex.Height - srcPh, srcPw, srcPh);
+            Rectangle srcBottom = new Rectangle(srcPw, tex.Height - srcPh, srcCenterW, srcPh);
+            Rectangle srcBottomRight = new Rectangle(tex.Width - srcPw, tex.Height - srcPh, srcPw, srcPh);
+
+            if (dstPw > 0 && dstPh > 0)
+            {
+                _spriteBatch.Draw(tex, new Rectangle(x1, y1, dstPw, dstPh), srcTopLeft, Color.White);
+                _spriteBatch.Draw(tex, new Rectangle(x3, y1, dstPw, dstPh), srcTopRight, Color.White);
+                _spriteBatch.Draw(tex, new Rectangle(x1, y3, dstPw, dstPh), srcBottomLeft, Color.White);
+                _spriteBatch.Draw(tex, new Rectangle(x3, y3, dstPw, dstPh), srcBottomRight, Color.White);
+            }
+
+            if (dstCenterW > 0 && dstPh > 0 && srcCenterW > 0)
+            {
+                _spriteBatch.Draw(tex, new Rectangle(x2, y1, dstCenterW, dstPh), srcTop, Color.White);
+                _spriteBatch.Draw(tex, new Rectangle(x2, y3, dstCenterW, dstPh), srcBottom, Color.White);
+            }
+
+            if (dstPw > 0 && dstCenterH > 0 && srcCenterH > 0)
+            {
+                _spriteBatch.Draw(tex, new Rectangle(x1, y2, dstPw, dstCenterH), srcLeft, Color.White);
+                _spriteBatch.Draw(tex, new Rectangle(x3, y2, dstPw, dstCenterH), srcRight, Color.White);
+            }
+
+            if (dstCenterW > 0 && dstCenterH > 0 && srcCenterW > 0 && srcCenterH > 0)
+            {
+                _spriteBatch.Draw(tex, new Rectangle(x2, y2, dstCenterW, dstCenterH), srcCenter, Color.White);
+            }
         }
 
         /// <summary>

@@ -102,6 +102,17 @@
             </ul>
         </div>
         <div class="card">
+            <div class="method-sig">bool UpdateLipSync(float holdSeconds)</div>
+            <p>口パク用の内部タイマーを更新し、「現在口を開いていてよいか」を返します。毎フレーム呼び出してください。</p>
+            <ul>
+                <li><code>holdSeconds</code>: 文字が表示されたあと、口を開いたまま維持する秒数です。</li>
+                <li>そのフレームで実際に表示文字が増えた場合だけ、内部タイマーが更新されます。</li>
+                <li>追加表示された文字が半角スペース <code>' '</code> または全角スペース <code>'　'</code> の場合は、内部タイマーを 0 にして口を閉じます。</li>
+                <li><code>[wait:1000]</code> や <code>[next:1000]</code> など、表示文字数に影響しないタグだけが進んだフレームではタイマーは延長されません。一定時間後に自然に口が閉じます。</li>
+                <li>戻り値が <code>true</code> の間は口を開いてよく、<code>false</code> のときは閉じる想定です。</li>
+            </ul>
+        </div>
+        <div class="card">
             <div class="method-sig">void SetVariable(string key, string value)</div>
             <p><code>[var:key]</code> タグで使用する文字列変数を設定します。<code>Show</code> または <code>LoadScript</code> を呼ぶ前に設定してください。</p>
         </div>

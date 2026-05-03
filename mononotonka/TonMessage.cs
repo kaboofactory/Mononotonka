@@ -232,6 +232,10 @@ namespace Mononotonka
         private float _timer = 0;
         private float _charSpeed = 50f; // ms per char
         private float _waitTimer = 0;
+        private float _lipSyncTimer = 0f;
+        private float _lastLipSyncElapsedSeconds = 0f;
+        private bool _hasPendingLipSyncCharacter = false;
+        private char _pendingLipSyncCharacter = '\0';
         
         // 現在のテキストスタイル
         private float _currentScale = 1.0f;
@@ -410,6 +414,35 @@ namespace Mononotonka
         }
 
         /// <summary>
+        /// 口パク用の状態を更新し、現在口を開けてよいか返します。
+        /// 半角・全角スペースが表示されたときは即座に閉じ、それ以外の表示文字で一定時間だけ開きます。
+        /// </summary>
+        /// <param name="holdSeconds">文字表示後に口を開いたまま維持する秒数</param>
+        public bool UpdateLipSync(float holdSeconds)
+        {
+            // 毎フレーム経過時間分だけ残り時間を減らす
+            _lipSyncTimer = Math.Max(0f, _lipSyncTimer - _lastLipSyncElapsedSeconds);
+            _lastLipSyncElapsedSeconds = 0f;
+
+            // 実際に表示文字が増えたフレームだけ口パク状態を更新する
+            if (_hasPendingLipSyncCharacter)
+            {
+                _hasPendingLipSyncCharacter = false;
+
+                if (IsLipSyncClosingSpace(_pendingLipSyncCharacter))
+                {
+                    _lipSyncTimer = 0f;
+                }
+                else
+                {
+                    _lipSyncTimer = Math.Max(0f, holdSeconds);
+                }
+            }
+
+            return _lipSyncTimer > 0f;
+        }
+
+        /// <summary>
         /// 発生したイベントIDを取得します。
         /// </summary>
         public string GetEvent()
@@ -480,6 +513,9 @@ namespace Mononotonka
         public void Update(GameTime gameTime, bool isInput = false)
         {
             if (!_isActive) return;
+
+            _lastLipSyncElapsedSeconds += (float)gameTime.ElapsedGameTime.TotalSeconds;
+            _hasPendingLipSyncCharacter = false;
             
             // 振動タイマー更新
             _shakeTimer += gameTime.ElapsedGameTime.TotalSeconds;
@@ -626,6 +662,7 @@ namespace Mononotonka
                             Visible = true
                         };
                         _drawObjects.Add(obj);
+                        RegisterLipSyncCharacter(c);
 
                         // カーソルを進める (文字幅 + カーニングオフセット)
                         _cursorX += charWidth + _kerningOffset;
@@ -1685,6 +1722,25 @@ namespace Mononotonka
         private bool TryParseFloatInvariant(string value, out float parsed)
         {
             return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed);
+        }
+
+        /// <summary>
+        /// 口パク判定に使用する最新の表示文字を記録します。
+        /// </summary>
+        /// <param name="revealedCharacter">このフレームで新たに表示された文字</param>
+        private void RegisterLipSyncCharacter(char revealedCharacter)
+        {
+            _pendingLipSyncCharacter = revealedCharacter;
+            _hasPendingLipSyncCharacter = true;
+        }
+
+        /// <summary>
+        /// 口を閉じる扱いにするスペース文字か判定します。
+        /// </summary>
+        /// <param name="character">判定対象文字</param>
+        private bool IsLipSyncClosingSpace(char character)
+        {
+            return character == ' ' || character == '　';
         }
 
         private void ParseTag(string tag, ref bool isLineStart)
