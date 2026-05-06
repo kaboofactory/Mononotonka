@@ -1649,6 +1649,73 @@ namespace Mononotonka
         }
 
         /// <summary>
+        /// デバッグ用：指定した画像または仮想画面をPNGとして保存します。
+        /// 名前を指定しない場合はメインの仮想画面を保存します。
+        /// </summary>
+        /// <param name="savePath">保存先のパス（相対パス可）</param>
+        /// <param name="imageName">画像または仮想画面の登録名（nullならメイン仮想画面）</param>
+        public void DebugSaveTexture(string savePath, string imageName = null)
+        {
+            Texture2D targetTexture = string.IsNullOrEmpty(imageName) ? _virtualScreen : GetTexture(imageName);
+            string targetName = string.IsNullOrEmpty(imageName) ? "_virtualScreen" : imageName;
+
+            if (targetTexture == null)
+            {
+                Ton.Log.Error($"DebugSaveTexture: Target texture is null for '{targetName}'.");
+                return;
+            }
+
+            Ton.Log.Info($"DebugSaveTexture: Attempting to save '{targetName}' (Size: {targetTexture.Width}x{targetTexture.Height}, Format: {targetTexture.Format})");
+
+            try
+            {
+                SaveTextureToPng(targetTexture, savePath);
+                Ton.Log.Info($"Texture saved successfully to {Path.GetFullPath(savePath)}");
+            }
+            catch (Exception ex)
+            {
+                Ton.Log.Error($"Failed to save texture '{targetName}': {ex.Message}");
+                Ton.Log.Error($"Stack Trace: {ex.StackTrace}");
+            }
+        }
+
+        /// <summary>
+        /// テクスチャをPNG保存する。
+        /// </summary>
+        /// <param name="targetTexture">保存対象テクスチャ。</param>
+        /// <param name="savePath">保存先パス。</param>
+        private void SaveTextureToPng(Texture2D targetTexture, string savePath)
+        {
+            int w = targetTexture.Width;
+            int h = targetTexture.Height;
+            var previousTargets = _game.GraphicsDevice.GetRenderTargets();
+
+            string directory = Path.GetDirectoryName(savePath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            using (var rt = new RenderTarget2D(_game.GraphicsDevice, w, h))
+            {
+                _game.GraphicsDevice.SetRenderTarget(rt);
+                _game.GraphicsDevice.Clear(Color.Transparent);
+
+                _spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.Opaque);
+                _spriteBatch.Draw(targetTexture, new Rectangle(0, 0, w, h), Color.White);
+                _spriteBatch.End();
+
+                _game.GraphicsDevice.SetRenderTargets(previousTargets);
+
+                using (var stream = File.Create(savePath))
+                {
+                    rt.SaveAsPng(stream, w, h);
+                    stream.Flush();
+                }
+            }
+        }
+
+        /// <summary>
         /// 矩形（四角形）を塗りつぶし描画します。
         /// </summary>
         /// <param name="x">X座標</param>

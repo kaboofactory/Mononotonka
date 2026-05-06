@@ -425,6 +425,15 @@
                 <li><code>id</code>: フォントID（nullの場合はデフォルトフォント）</li>
             </ul>
         </div>
+        <div class="card">
+            <div class="method-sig">void DebugSaveTexture(string savePath, string imageName = null)</div>
+            <p>（デバッグ用）指定した画像または仮想画面をPNG画像として保存します。<br>
+                <code>imageName</code> を省略した場合は、メインの仮想画面を保存します。</p>
+            <ul>
+                <li><code>savePath</code>: 保存パス（相対パス可）</li>
+                <li><code>imageName</code>: 画像または仮想画面の登録名（nullの場合はメイン仮想画面）</li>
+            </ul>
+        </div>
 
         <h2>Sample Code</h2>
         <pre><code>// In Initialize()
