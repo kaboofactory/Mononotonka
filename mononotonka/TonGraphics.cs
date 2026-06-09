@@ -18,7 +18,7 @@ namespace Mononotonka
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
         private SpriteFont _defaultFont;
-        private bool _useAA = false;
+        private Dictionary<string, bool> _targetUseAA = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         private TonBlendState _currentBlendState;
 
         // リソース管理クラス
@@ -135,7 +135,7 @@ namespace Mononotonka
             // コンテンツパイプライン経由で "shader/Filter" がある場合など
 
             // アンチエイリアスの初期設定（デフォルト有効）
-            SetAntiAliasing(true);
+            SetAntiAliasing(true, null);
         }
 
         /// <summary>
@@ -748,13 +748,30 @@ namespace Mononotonka
         }
 
         /// <summary>
-        /// アンチエイリアス（線形補間サンプラー）の使用切り替えを設定します。
+        /// 指定したレンダーターゲット（nullの場合はデフォルトの仮想画面）に対するアンチエイリアス（線形補間サンプラー）の使用切り替えを設定します。
         /// 次の Begin() 呼び出しから適用されます。
         /// </summary>
         /// <param name="enabled">trueなら有効、falseなら無効（ドット絵向け）</param>
-        public void SetAntiAliasing(bool enabled)
+        /// <param name="targetName">対象のレンダーターゲット名（nullの場合はデフォルトの仮想画面）</param>
+        public void SetAntiAliasing(bool enabled, string targetName = null)
         {
-            _useAA = enabled;
+            string key = targetName ?? "__virtual__";
+            _targetUseAA[key] = enabled;
+        }
+
+        /// <summary>
+        /// 指定したレンダーターゲット（nullの場合はデフォルトの仮想画面）のアンチエイリアス設定値を取得します。
+        /// </summary>
+        /// <param name="targetName">対象のレンダーターゲット名（nullの場合はデフォルトの仮想画面）</param>
+        /// <returns>有効な場合true</returns>
+        public bool GetAntiAliasing(string targetName = null)
+        {
+            string key = targetName ?? "__virtual__";
+            if (_targetUseAA.TryGetValue(key, out bool enabled))
+            {
+                return enabled;
+            }
+            return false;
         }
 
         /// <summary>
@@ -788,7 +805,7 @@ namespace Mononotonka
                  _game.GraphicsDevice.SetRenderTarget(_virtualScreen);
             }
 
-            var sampler = _useAA ? SamplerState.LinearClamp : SamplerState.PointClamp;
+            var sampler = GetAntiAliasing(_currentTargetName) ? SamplerState.LinearClamp : SamplerState.PointClamp;
             
             // 画面シェイク用の行列適用（メイン画面描画時のみ）
             Matrix transform = Matrix.Identity;
@@ -809,7 +826,7 @@ namespace Mononotonka
         public void SetBlendState(TonBlendState blend)
         {
             _spriteBatch.End();
-            var sampler = _useAA ? SamplerState.LinearClamp : SamplerState.PointClamp;
+            var sampler = GetAntiAliasing(_currentTargetName) ? SamplerState.LinearClamp : SamplerState.PointClamp;
             Matrix transform = Matrix.Identity;
             if (_currentTargetName == null)
             {
@@ -925,7 +942,7 @@ namespace Mononotonka
         /// </summary>
         public void ResumeBatch()
         {
-            var sampler = _useAA ? SamplerState.LinearClamp : SamplerState.PointClamp;
+            var sampler = GetAntiAliasing(_currentTargetName) ? SamplerState.LinearClamp : SamplerState.PointClamp;
             
             Matrix transform = Matrix.Identity;
             if (_currentTargetName == null)
@@ -1059,7 +1076,7 @@ namespace Mononotonka
              Rectangle drawSrc = (drawTex == tex) ? src : new Rectangle(0, 0, src.Width, src.Height);
 
              // 現在のステートで開始
-             var sampler = _useAA ? SamplerState.LinearClamp : SamplerState.PointClamp;
+             var sampler = GetAntiAliasing(_currentTargetName) ? SamplerState.LinearClamp : SamplerState.PointClamp;
              Matrix transform = Matrix.Identity;
              if (_currentTargetName == null) transform = Matrix.CreateTranslation(_shakeOffset.X, _shakeOffset.Y, 0);
 

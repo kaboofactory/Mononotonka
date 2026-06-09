@@ -332,15 +332,22 @@
             </ul>
         </div>
         <div class="card">
-            <div class="method-sig">void SetAntiAliasing(bool enabled)</div>
-            <p>描画時のアンチエイリアス（スムージング）の有効・無効を切り替えます。<br>
+            <div class="method-sig">void SetAntiAliasing(bool enabled, string targetName = null)</div>
+            <p>指定したレンダーターゲット（<code>null</code>の場合はデフォルトの仮想画面）に対する描画時のアンチエイリアス（スムージング）の有効・無効を切り替えます。<br>
                 ドット絵をくっきり表示したい場合は <code>false</code> に設定してください。<br>
                 <strong>注意:</strong> 設定は <strong>次回の描画バッチ（SetBlendStateやSetRenderTargetの呼び出し、または次フレームの開始時）から</strong>
                 有効になります。描画の途中で切り替える場合は注意してください（直後の描画に反映されない場合があります）。
             </p>
             <ul>
-                <li><code>enabled</code>: <code>true</code>=有効（滑らか）, <code>false</code>=無効（ドット重視）。初期値は <code>true</code>
-                    です。</li>
+                <li><code>enabled</code>: <code>true</code>=有効（滑らか）, <code>false</code>=無効（ドット重視）。</li>
+                <li><code>targetName</code>: 対象とするレンダーターゲット名（<code>null</code>の場合はデフォルトの仮想画面）。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="method-sig">bool GetAntiAliasing(string targetName = null)</div>
+            <p>指定したレンダーターゲット（<code>null</code>の場合はデフォルトの仮想画面）の現在のアンチエイリアス設定値を取得します。</p>
+            <ul>
+                <li><code>targetName</code>: 対象とするレンダーターゲット名（<code>null</code>の場合はデフォルトの仮想画面）。</li>
             </ul>
         </div>
         <div class="card">
