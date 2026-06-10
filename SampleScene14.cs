@@ -217,8 +217,39 @@ namespace Mononotonka
                 null
             );
 
+            // 6. Easing関数デモ (EasingType × EasingMode)
+            int easingIndex = 0;
+            // 0.0〜1.0 の間を往復する値 t を計算
+            float easeT = (float)(Math.Sin(_time * 2.0f) + 1.0) / 2.0f;
+
+            foreach (EasingType type in (EasingType[])Enum.GetValues(typeof(EasingType)))
+            {
+                foreach (EasingMode mode in (EasingMode[])Enum.GetValues(typeof(EasingMode)))
+                {
+                    float y = 25f + easingIndex * 19.0f;
+                    float startX = 1080f;
+                    float endX = 1250f;
+                    
+                    // イージング適用後の割合
+                    float easedT = Ton.Math.Ease(easeT, type, mode);
+                    float x = startX + (endX - startX) * easedT;
+
+                    // イージング名を描画
+                    string name = $"{type} {mode}";
+                    Ton.Gra.DrawText(name, (int)startX - 150, (int)y - 4, Color.Black, 0.35f);
+
+                    // 補助線（ガイドライン）
+                    Ton.Primitive.DrawRectangle(new Vector2(startX + (endX - startX) * 0.5f, y), new Vector2(endX - startX, 1f), Color.Gray * 0.3f, 0f, null);
+
+                    // 小さい丸を描画
+                    Ton.Primitive.DrawCircle(new Vector2(x, y), 4f, Color.Red, 12);
+
+                    easingIndex++;
+                }
+            }
+
             // 次のシーンへ
-            Ton.Gra.DrawText("Hold the A button (Next Scene)", 700 - (int)(Ton.Input.GetPressedDuration("A") * 400.0f), 160, 0.6f + (float)Ton.Input.GetPressedDuration("A"));
+            Ton.Gra.DrawText("Hold the A button (Next Scene)", 500 - (int)(Ton.Input.GetPressedDuration("A") * 400.0f), 160, 0.6f + (float)Ton.Input.GetPressedDuration("A"));
         }
 
         public void Terminate()

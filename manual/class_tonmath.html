@@ -13,6 +13,47 @@
         <h1>Class: TonMath</h1>
         <p>ゲーム開発に役立つ数学・乱数などのユーティリティ関数群です。</p>
 
+        <h2 id="enums">Enums</h2>
+        <h3 id="enum-easingtype">EasingType</h3>
+        <p>イージング関数の種類を表す列挙体です。</p>
+        <table class="table-spec">
+            <thead>
+                <tr>
+                    <th>値</th>
+                    <th>説明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td><code>Linear</code></td><td>等速の直線運動</td></tr>
+                <tr><td><code>Quad</code></td><td>2次方程式補間（なめらか）</td></tr>
+                <tr><td><code>Cubic</code></td><td>3次方程式補間（少し急な加減速）</td></tr>
+                <tr><td><code>Quart</code></td><td>4次方程式補間（急な加減速）</td></tr>
+                <tr><td><code>Quint</code></td><td>5次方程式補間（非常に急な加減速）</td></tr>
+                <tr><td><code>Sine</code></td><td>サイン波（きわめて自然な加減速）</td></tr>
+                <tr><td><code>Expo</code></td><td>指数関数（動き出しが遅く、後半一気に加速）</td></tr>
+                <tr><td><code>Back</code></td><td>少し後ろに沈み込んでから前に飛び出す動き</td></tr>
+                <tr><td><code>Circ</code></td><td>円形補間（硬質で機械的な加減速）</td></tr>
+                <tr><td><code>Elastic</code></td><td>弾性のあるバネ振動のような動き</td></tr>
+                <tr><td><code>Bounce</code></td><td>ボールが跳ね返るようなバウンド運動</td></tr>
+            </tbody>
+        </table>
+
+        <h3 id="enum-easingmode">EasingMode</h3>
+        <p>イージングの方向（モード）を表す列挙体です。</p>
+        <table class="table-spec">
+            <thead>
+                <tr>
+                    <th>値</th>
+                    <th>説明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td><code>In</code></td><td>開始時にイージング（最初はゆっくり、徐々に加速）</td></tr>
+                <tr><td><code>Out</code></td><td>終了時にイージング（最初は速く、徐々に減速）</td></tr>
+                <tr><td><code>InOut</code></td><td>開始と終了の両方でイージング</td></tr>
+            </tbody>
+        </table>
+
         <h2>Methods</h2>
         <div class="card">
             <div class="method-sig">int Rand(int min, int max)</div>
@@ -64,6 +105,15 @@
                 <li><code>rect</code>: 判定対象の矩形</li>
             </ul>
         </div>
+        <div class="card">
+            <div class="method-sig">float Ease(float t, EasingType type, EasingMode mode = EasingMode.In)</div>
+            <p>指定したイージングタイプとモードで時間割合 (0.0〜1.0) を補間した値を返します。</p>
+            <ul>
+                <li><code>t</code>: 時間割合 (0.0～1.0)</li>
+                <li><code>type</code>: <a href="#enum-easingtype"><code>EasingType</code></a></li>
+                <li><code>mode</code>: <a href="#enum-easingmode"><code>EasingMode</code></a></li>
+            </ul>
+        </div>
 
 <h2>Sample Code</h2>
         <pre><code>// Random Integer [0, 100)
@@ -90,7 +140,10 @@ bool isHitCircle = Ton.Math.HitCheckCircle(
 );
 
 // Point in Rectangle
-bool isMouseOnButton = Ton.Math.IsPointInRect(mouseX, mouseY, buttonRect);</code></pre>
+bool isMouseOnButton = Ton.Math.IsPointInRect(mouseX, mouseY, buttonRect);
+
+// Easing (Cubic EaseIn)
+float easedT = Ton.Math.Ease(t, EasingType.Cubic, EasingMode.In);</code></pre>
     </div>
 </body>
 

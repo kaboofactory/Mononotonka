@@ -3,6 +3,35 @@ using Microsoft.Xna.Framework;
 
 namespace Mononotonka
 {
+
+    /// <summary>
+    /// イージング関数の種類を表す列挙型。
+    /// </summary>
+    public enum EasingType
+    {
+        Linear,
+        Quad,
+        Cubic,
+        Quart,
+        Quint,
+        Sine,
+        Expo,
+        Back,
+        Circ,
+        Elastic,
+        Bounce
+    }
+
+    /// <summary>
+    /// イージングの方向（モード）を表す列挙型。
+    /// </summary>
+    public enum EasingMode
+    {
+        In,
+        Out,
+        InOut
+    }
+
     /// <summary>
     /// 数学・乱数関連のユーティリティクラスです。
     /// </summary>
@@ -85,5 +114,90 @@ namespace Mononotonka
         {
             return rect.Contains((int)x, (int)y);
         }
+
+        /// <summary>
+        /// 指定したイージングタイプとモードで時間割合 (0.0〜1.0) を補間した値を返します。
+        /// (このイージング関数群は Robert Penner 氏のイージング方程式に基づいています)
+        /// </summary>
+        /// <param name="t">時間割合 (0.0～1.0)</param>
+        /// <param name="type">イージングの種類</param>
+        /// <param name="mode">イージングの方向（モード）</param>
+        /// <returns>補間された値 (0.0～1.0)</returns>
+        public float Ease(float t, EasingType type, EasingMode mode = EasingMode.In)
+        {
+            t = MathHelper.Clamp(t, 0f, 1f);
+            if (type == EasingType.Linear)
+            {
+                return t;
+            }
+
+            switch (mode)
+            {
+                case EasingMode.In:
+                    return EaseIn(t, type);
+                case EasingMode.Out:
+                    return 1f - EaseIn(1f - t, type);
+                case EasingMode.InOut:
+                    return t < 0.5f
+                        ? EaseIn(t * 2f, type) * 0.5f
+                        : 1f - EaseIn((1f - t) * 2f, type) * 0.5f;
+                default:
+                    return t;
+            }
+        }
+
+        private static float EaseIn(float t, EasingType type)
+        {
+            switch (type)
+            {
+                case EasingType.Quad: return t * t;
+                case EasingType.Cubic: return t * t * t;
+                case EasingType.Quart: return t * t * t * t;
+                case EasingType.Quint: return t * t * t * t * t;
+                case EasingType.Sine: return 1f - MathF.Cos(t * MathF.PI * 0.5f);
+                case EasingType.Expo: return t == 0f ? 0f : MathF.Pow(2f, 10f * (t - 1f));
+                case EasingType.Back:
+                    {
+                        const float c1 = 1.70158f;
+                        const float c3 = c1 + 1f;
+                        return c3 * t * t * t - c1 * t * t;
+                    }
+                case EasingType.Circ:
+                    return 1f - MathF.Sqrt(1f - t * t);
+                case EasingType.Elastic:
+                    return t == 0f ? 0f : (t == 1f ? 1f : -MathF.Pow(2f, 10f * t - 10f) * MathF.Sin((t * 10f - 10.75f) * ((2f * MathF.PI) / 3f)));
+                case EasingType.Bounce:
+                    return 1f - EaseOutBounce(1f - t);
+                default: return t;
+            }
+        }
+
+        private static float EaseOutBounce(float t)
+        {
+            const float n1 = 7.5625f;
+            const float d1 = 2.75f;
+
+            if (t < 1f / d1)
+            {
+                return n1 * t * t;
+            }
+            else if (t < 2f / d1)
+            {
+                t -= 1.5f / d1;
+                return n1 * t * t + 0.75f;
+            }
+            else if (t < 2.5f / d1)
+            {
+                t -= 2.25f / d1;
+                return n1 * t * t + 0.9375f;
+            }
+            else
+            {
+                t -= 2.625f / d1;
+                return n1 * t * t + 0.984375f;
+            }
+        }
     }
+
 }
+

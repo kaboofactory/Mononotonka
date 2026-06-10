@@ -55,6 +55,9 @@ namespace Mononotonka
             // 終了処理開始
             Ton.Log.Info("Scene " + this.GetType().Name + " Terminating.");
 
+            // 画面フィルタをクリアする
+            Ton.Gra.ClearScreenFilter();
+
             // 永続的に使用しないリソースはここでアンロード(UnloadTexture()など)してください(自動解放を待ちたくない場合)
 
             // 終了処理終了
