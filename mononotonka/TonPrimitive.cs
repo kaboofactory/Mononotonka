@@ -40,9 +40,10 @@ namespace Mononotonka
         {
             if (_basicEffect != null)
             {
+                var viewport = _game.GraphicsDevice.Viewport;
                 _basicEffect.Projection = Matrix.CreateOrthographicOffCenter(
-                    0, Ton.Game.VirtualWidth,
-                    Ton.Game.VirtualHeight, 0,
+                    0, viewport.Width,
+                    viewport.Height, 0,
                     0, 1
                 );
             }

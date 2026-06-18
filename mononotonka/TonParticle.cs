@@ -264,9 +264,12 @@ namespace Mononotonka
                 Angle = p.Rotation
             };
             
-            var tex = Ton.Gra.LoadTexture(p.Param.ImageName, p.Param.ImageName);
-            int w = (tex != null) ? tex.Width : 0;
-            int h = (tex != null) ? tex.Height : 0;
+            int w = Ton.Gra.GetTextureWidth(p.Param.ImageName);
+            int h = Ton.Gra.GetTextureHeight(p.Param.ImageName);
+            if (w <= 0 || h <= 0)
+            {
+                return;
+            }
 
             Ton.Gra.DrawEx(p.Param.ImageName, p.Position.X, p.Position.Y, 0, 0, w, h, param);
         }
@@ -284,9 +287,12 @@ namespace Mononotonka
             };
             
             // テクスチャサイズ取得
-            var tex = Ton.Gra.LoadTexture(p.Param.ImageName, p.Param.ImageName);
-            int w = (tex != null) ? tex.Width : 0;
-            int h = (tex != null) ? tex.Height : 0;
+            int w = Ton.Gra.GetTextureWidth(p.Param.ImageName);
+            int h = Ton.Gra.GetTextureHeight(p.Param.ImageName);
+            if (w <= 0 || h <= 0)
+            {
+                return;
+            }
 
             // 中心基準で描画
             Ton.Gra.DrawEx(p.Param.ImageName, p.Position.X, p.Position.Y, 0, 0, w, h, param);
