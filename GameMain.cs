@@ -96,6 +96,9 @@ namespace Mononotonka
             Ton.Gra.LoadTexture("sample_assets/image/scroll_up", "scroll_up");
             Ton.Gra.LoadTexture("sample_assets/image/scroll_down", "scroll_down");
             Ton.Gra.LoadTexture("sample_assets/image/neko_bg", "neko_bg");
+
+            // VRAM容量をログに出力する
+            Ton.Gra.LogContentGroupMemory();
         }
 
         /// <summary>

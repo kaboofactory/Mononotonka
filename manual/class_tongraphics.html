@@ -129,6 +129,13 @@
             </ul>
         </div>
         <div class="card">
+            <div class="method-sig">void LogContentGroupMemory(string contentId = null)</div>
+            <p>指定したコンテンツグループ（<code>contentId</code>）、またはすべてのコンテンツグループとフォントの使用テクスチャ容量をログに出力します。</p>
+            <ul>
+                <li><code>contentId</code>: 対象のコンテンツグループID。<code>null</code>または空文字の場合は全グループおよびフォントの容量を出力します。</li>
+            </ul>
+        </div>
+        <div class="card">
             <div class="method-sig">void SetCacheTimeout(double seconds)</div>
             <p>未使用リソースグループの自動破棄（キャッシュアウト）までの時間を設定します。<br>
                 デフォルトは300秒（5分）です。<br>
@@ -146,6 +153,14 @@
             <div class="method-sig">int GetMaxTextureSize()</div>
             <p>現在の実行環境で利用可能な最大テクスチャサイズ（一辺のピクセル数）を取得します。<br>
                 初回呼び出し時に内部プローブを行い、以後はキャッシュ値を返します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">long GetTotalTextureMemory()</div>
+            <p>現在のトータル推定VRAM使用量（バイト）を取得します。</p>
+        </div>
+        <div class="card">
+            <div class="method-sig">long GetMaxTextureMemory()</div>
+            <p>現在の最大推定VRAM使用量（バイト）を取得します。</p>
         </div>
         <div class="card">
             <div class="method-sig">void Clear(Color? color = null)</div>

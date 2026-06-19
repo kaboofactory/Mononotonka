@@ -58,6 +58,84 @@ namespace Mononotonka
         /// </summary>
         public long MaxTextureMemory => _maxTextureMemory;
 
+        /// <summary>
+        /// 現在のトータル推定VRAM使用量（バイト）を取得します。
+        /// </summary>
+        /// <returns>現在のトータル推定VRAM使用量（バイト）</returns>
+        public long GetTotalTextureMemory()
+        {
+            return _totalTextureMemory;
+        }
+
+        /// <summary>
+        /// 現在の最大推定VRAM使用量（バイト）を取得します。
+        /// </summary>
+        /// <returns>現在の最大推定VRAM使用量（バイト）</returns>
+        public long GetMaxTextureMemory()
+        {
+            return _maxTextureMemory;
+        }
+
+        /// <summary>
+        /// 指定したコンテンツグループ（contentId）、またはすべてのコンテンツグループとフォントの使用テクスチャ容量をログに出力します。
+        /// </summary>
+        /// <param name="contentId">対象のコンテンツグループID。nullまたは空文字の場合は全グループおよびフォントの容量を出力します。</param>
+        public void LogContentGroupMemory(string contentId = null)
+        {
+            if (!string.IsNullOrEmpty(contentId))
+            {
+                LogSingleContentGroupMemory(contentId);
+            }
+            else
+            {
+                Ton.Log.Info("[MEM] --- ContentGroup Memory Usage Start ---");
+                foreach (var gid in _contentGroups.Keys)
+                {
+                    LogSingleContentGroupMemory(gid);
+                }
+
+                // フォントの合計サイズ計算
+                long fontsTotalSize = 0;
+                int fontCount = 0;
+                foreach (var font in _fonts.Values)
+                {
+                    if (font.Texture != null)
+                    {
+                        fontsTotalSize += GetTextureSize(font.Texture);
+                        fontCount++;
+                    }
+                }
+                Ton.Log.Info($"[MEM] Fonts (Total): Size: {FormatBytesMBAndMiB(fontsTotalSize)} (Count: {fontCount})");
+                Ton.Log.Info("[MEM] --- ContentGroup Memory Usage End ---");
+            }
+        }
+
+        /// <summary>
+        /// 指定した単一のコンテンツグループのテクスチャ使用容量をログ出力します。
+        /// </summary>
+        /// <param name="contentId">コンテンツグループID</param>
+        private void LogSingleContentGroupMemory(string contentId)
+        {
+            if (!_contentGroups.TryGetValue(contentId, out var group))
+            {
+                Ton.Log.Info($"[MEM] ContentGroup '{contentId}': (Not Found/Unloaded)");
+                return;
+            }
+
+            long groupTotalSize = 0;
+            int resourceCount = 0;
+            foreach (var resName in group.ResourceNames)
+            {
+                if (_resources.TryGetValue(resName, out var res))
+                {
+                    groupTotalSize += res.Size;
+                    resourceCount++;
+                }
+            }
+
+            Ton.Log.Info($"[MEM] ContentGroup '{contentId}': Size: {FormatBytesMBAndMiB(groupTotalSize)} (Count: {resourceCount})");
+        }
+
         private long GetTextureSize(Texture2D tex)
         {
              if (tex == null) return 0;
@@ -69,6 +147,32 @@ namespace Mononotonka
         {
             double mb = bytes / (1024.0 * 1024.0);
             return $"{mb:F2} MB";
+        }
+
+        /// <summary>
+        /// バイト数をMB（1000^2換算）とMiB（1024^2換算）の表記にフォーマットします。
+        /// </summary>
+        /// <param name="bytes">バイト数</param>
+        /// <returns>フォーマットされた文字列（例: "1.05 MB / 1.00 MiB"）</returns>
+        private string FormatBytesMBAndMiB(long bytes)
+        {
+            double mb = bytes / (1000.0 * 1000.0);
+            double mib = bytes / (1024.0 * 1024.0);
+            return $"{mb:F2} MB / {mib:F2} MiB";
+        }
+
+        /// <summary>
+        /// メモリ管理用のログメッセージを生成します。
+        /// </summary>
+        /// <param name="action">アクション名（Loaded, Released など）</param>
+        /// <param name="resourceName">リソース名</param>
+        /// <param name="size">対象リソースのサイズ（バイト）</param>
+        /// <param name="groupName">所属するコンテンツグループ名（省略可能）</param>
+        /// <returns>生成されたログメッセージ文字列</returns>
+        private string CreateMemoryLogMessage(string action, string resourceName, long size, string groupName = "")
+        {
+            string groupStr = string.IsNullOrEmpty(groupName) ? "" : $" [Group: {groupName}]";
+            return $"[MEM] {action}: {resourceName} (Size: {FormatBytesMBAndMiB(size)}). Total: {FormatBytesMBAndMiB(_totalTextureMemory)} (Max: {FormatBytesMBAndMiB(_maxTextureMemory)}){groupStr}";
         }
 
         // リソースキャッシュ
@@ -348,7 +452,7 @@ namespace Mononotonka
                 
                 _totalTextureMemory += size;
                 if (_totalTextureMemory > _maxTextureMemory) _maxTextureMemory = _totalTextureMemory;
-                Ton.Log.Info($"[MEM] Loaded Texture: {name} (Size: {FormatBytes(size)}). (Group: {contentId})");
+                Ton.Log.Info(CreateMemoryLogMessage("Loaded Texture", name, size, contentId));
                 
                 return tex;
             }
@@ -419,6 +523,7 @@ namespace Mononotonka
                     {
                         var res = _resources[resName];
                         _totalTextureMemory -= res.Size;
+                        Ton.Log.Info(CreateMemoryLogMessage("Released Texture", resName, res.Size, contentId));
                         
                         // IsManualなものは個別にDisposeが必要だが、通常のTextureはManagerとともに消える
                         // ただし、もしIsManualなものがグループに入っている場合はここでDispose
@@ -719,7 +824,7 @@ namespace Mononotonka
              long size = GetTextureSize(rt);
              _totalTextureMemory += size;
              if (_totalTextureMemory > _maxTextureMemory) _maxTextureMemory = _totalTextureMemory;
-             Ton.Log.Info($"[MEM] Created RenderTarget: {targetName} ({FormatBytes(size)}). Total: {FormatBytes(_totalTextureMemory)}");
+             Ton.Log.Info(CreateMemoryLogMessage("Created RenderTarget", targetName, size));
         }
 
         /// <summary>
@@ -743,7 +848,7 @@ namespace Mononotonka
                 _renderTargets.Remove(targetName);
                 
                 _totalTextureMemory -= size;
-                Ton.Log.Info($"[MEM] Released RenderTarget: {targetName} ({FormatBytes(size)}). Total: {FormatBytes(_totalTextureMemory)}");
+                Ton.Log.Info(CreateMemoryLogMessage("Released RenderTarget", targetName, size));
             }
         }
 
@@ -1424,7 +1529,7 @@ namespace Mononotonka
                     long size = GetTextureSize(font.Texture);
                     _totalTextureMemory += size;
                     if (_totalTextureMemory > _maxTextureMemory) _maxTextureMemory = _totalTextureMemory;
-                    Ton.Log.Info($"[MEM] Loaded Font: {name} (Texture: {FormatBytes(size)}). Total: {FormatBytes(_totalTextureMemory)}");
+                    Ton.Log.Info(CreateMemoryLogMessage("Loaded Font", name, size));
                 }
                 
                 // "default"という名前で登録された場合、またはまだデフォルトフォントがない場合、これをデフォルトとする
