@@ -423,6 +423,13 @@
             </ul>
         </div>
         <div class="card">
+            <div class="method-sig">bool HasRenderTarget(string targetName)</div>
+            <p>指定した登録名のレンダーターゲットが存在するかどうかを取得します。</p>
+            <ul>
+                <li><code>targetName</code>: レンダーターゲットの登録ID</li>
+            </ul>
+        </div>
+        <div class="card">
             <div class="method-sig">void CreateRenderTarget(string targetName, int width, int height)</div>
             <p>新しいレンダーターゲット（オフスクリーン描画領域）を作成します。<br>
                 登録した <code>targetName</code> は、<code>Draw</code> メソッドなどの <code>imageName</code>

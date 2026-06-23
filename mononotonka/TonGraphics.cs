@@ -810,6 +810,16 @@ namespace Mononotonka
         }
 
         /// <summary>
+        /// 指定したレンダーターゲットが存在するかどうかを返します。
+        /// </summary>
+        /// <param name="targetName">登録名</param>
+        /// <returns>存在する場合はtrue</returns>
+        public bool HasRenderTarget(string targetName)
+        {
+            return _renderTargets.ContainsKey(targetName);
+        }
+
+        /// <summary>
         /// 新しいレンダーターゲットを作成します。
         /// </summary>
         /// <param name="targetName">登録名</param>
