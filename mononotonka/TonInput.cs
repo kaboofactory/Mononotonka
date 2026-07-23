@@ -182,6 +182,10 @@ namespace Mononotonka
             _prevMouse = _currentMouse;
             _currentMouse = Mouse.GetState();
 
+            // 非アクティブ中や復帰直後に保持されていたマウス操作が、
+            // 復帰時のJustPressedとして誤発火しないよう状態を同期する。
+            if (!IsMouseInputActive()) _prevMouse = _currentMouse;
+
             
             // 接続状態変化ログ
             if (_prevGamePad.IsConnected && !_currentGamePad.IsConnected)
@@ -323,7 +327,7 @@ namespace Mononotonka
         /// <returns>ホイール差分。上方向なら正、下方向なら負。</returns>
         public int GetMouseWheelDelta()
         {
-            if (_isInputConsumed) return 0;
+            if (_isInputConsumed || !IsMouseInputActive()) return 0;
             return _currentMouse.ScrollWheelValue - _prevMouse.ScrollWheelValue;
         }
 
@@ -384,7 +388,7 @@ namespace Mononotonka
         /// </summary>
         public bool IsMousePressed(MouseButton button)
         {
-            if (_isInputConsumed) return false;
+            if (_isInputConsumed || !IsMouseInputActive()) return false;
             return GetMouseButtonState(_currentMouse, button) == ButtonState.Pressed;
         }
 
@@ -393,7 +397,7 @@ namespace Mononotonka
         /// </summary>
         public bool IsMouseJustPressed(MouseButton button)
         {
-            if (_isInputConsumed) return false;
+            if (_isInputConsumed || !IsMouseInputActive()) return false;
             return GetMouseButtonState(_currentMouse, button) == ButtonState.Pressed &&
                    GetMouseButtonState(_prevMouse, button) == ButtonState.Released;
         }
@@ -403,9 +407,18 @@ namespace Mononotonka
         /// </summary>
         public bool IsMouseJustReleased(MouseButton button)
         {
-            if (_isInputConsumed) return false;
+            if (_isInputConsumed || !IsMouseInputActive()) return false;
             return GetMouseButtonState(_currentMouse, button) == ButtonState.Released &&
                    GetMouseButtonState(_prevMouse, button) == ButtonState.Pressed;
+        }
+
+        /// <summary>
+        /// マウス操作を受け付けられるウィンドウ状態かを判定します。
+        /// </summary>
+        private static bool IsMouseInputActive()
+        {
+            return Ton.Game == null ||
+                Ton.Game.GetWindowActivityState() == TonWindowActivityState.Active;
         }
     }
 }
